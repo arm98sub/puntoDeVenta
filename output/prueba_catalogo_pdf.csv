@@ -1,0 +1,173 @@
+﻿codigo_truper,clave,descripcion,descripcion_familia,presentacion,marca,precio_catalogo_mayoreo,precio_catalogo_medio_mayoreo,precio_catalogo_publico,pagina_catalogo,estado_previo,confianza_extraccion,requiere_revision
+102533,ACEM-34,"Aceite mineral para compresor, 1 L","Aceite mineral para compresor, 1 L",1 L (34 @N),,180,200,220,18,pendiente,alta,false
+102932,ACEH-34,"Aceite para gato hidráulico, 1 L","Aceite para gato hidráulico, 1 L",1 L (34 @N),,165,180,200,18,pendiente,alta,false
+102931,ABC-34,"Aceite lubricante para barra y cadena de motosierra, 1 L","Aceite lubricante para barra y cadena de motosierra, 1 L",1 L (34 @N),,180,200,220,18,pendiente,alta,false
+14991,ACES-2,Aceites sintéticos de 2 tiempos - 60 ml (2 @N) 3 L (0.8 g.l) 10,Aceites sintéticos de 2 tiempos,60 ml (2 @N) 3 L (0.8 g.l) 10,,29,32,35,18,pendiente,alta,false
+17624,ACES-5,Aceites sintéticos de 2 tiempos - 100 ml (3 @N) 5 L (1.3 g.l) 6,Aceites sintéticos de 2 tiempos,100 ml (3 @N) 5 L (1.3 g.l) 6,,42,46,51,18,pendiente,alta,false
+17625,ACES-20,Aceites sintéticos de 2 tiempos - 400 ml (14 @N) 20 L (5.2 g.l) 6,Aceites sintéticos de 2 tiempos,400 ml (14 @N) 20 L (5.2 g.l) 6,,117,127,140,18,pendiente,alta,false
+101975,WT-400CA,"Lubricante de cadenas en aerosol, 400 ml","Lubricante de cadenas en aerosol, 400 ml",400 ml (14 @N),,85,95,105,18,pendiente,alta,false
+101976,WT-400SP,"Lubricante penetrante en aerosol, 400 ml","Lubricante penetrante en aerosol, 400 ml",400 ml (14 @N),,72,79,87,18,pendiente,alta,false
+101974,WT-300GL,"Grasa blanca de litio en aerosol, 295 ml","Grasa blanca de litio en aerosol, 295 ml",295 ml (10 @N),,85,95,105,18,pendiente,alta,false
+101977,WT-240TE,"Lubricante seco PTFE en aerosol, 240 ml","Lubricante seco PTFE en aerosol, 240 ml",240 ml (8 @N),,85,95,105,18,pendiente,alta,false
+14928,ACES-4T-14,Aceites semisintéticos de 4 tiempos - 400 ml (14 @N),Aceites semisintéticos de 4 tiempos,400 ml (14 @N),,77,85,95,18,pendiente,alta,false
+14929,ACES-4T-34,Aceites semisintéticos de 4 tiempos - 1 L (34 @N),Aceites semisintéticos de 4 tiempos,1 L (34 @N),,157,172,187,18,pendiente,alta,false
+17247,COMP-AERO,»,»,,,1600,1680,1765,98,pendiente,media,true
+103321,R-COMP-60LB,"2 #G32.E 8"" 1 q⁄sx"" 23 D3BG3EF@ B.D. COP-120 M COP-60B","2 #G32.E 8"" 1 q⁄sx"" 23 D3BG3EF@ B.D. COP-120 M COP-60B",,,435,475,525,98,pendiente,media,true
+102082,R63-COMP-50LT,2 P.F.E 23 g@m. 23 D3BG3EF@ B.D. COP-120 M COP-60B,2 P.F.E 23 g@m. 23 D3BG3EF@ B.D. COP-120 M COP-60B,,,72,79,87,98,pendiente,media,true
+12874,LLAP-12,"laJe Bara Blomero¯ 1\"" - [\ (30 cm)","laJe Bara Blomero¯ 1\""",[\ (30 cm),,175,195,215,218,enriquecido,media,true
+101387,PEA-8,"laJe ajGsta0le Bara Blomero¯ b"" - b (20 cm)","laJe ajGsta0le Bara Blomero¯ b""",b (20 cm),,280,310,340,218,pendiente,media,true
+14546,LL-3Q-FA,laJe GniJersal Bara 5iltro de aceite - \ i|t—] o|z (65—98 mm),laJe GniJersal Bara 5iltro de aceite,\ i|t—] o|z (65—98 mm),,185,205,225,218,pendiente,media,true
+15515,LLC-801,laJe GniJersal con cadena - [—^ k|v (25—120 mm),laJe GniJersal con cadena,[—^ k|v (25—120 mm),,590,650,715,218,pendiente,media,true
+14515,LF-5,"laJes de 0anda metálica para filtro de aceite - 2i|t""¾3i|v"" (65¾80 mm)",laJes de 0anda metálica para filtro de aceite,"2i|t""¾3i|v"" (65¾80 mm)",,110,120,130,218,pendiente,media,true
+14518,LF-10,"laJes de 0anda metálica para filtro de aceite - 3i|v""¾3k|v"" (80¾95 mm)",laJes de 0anda metálica para filtro de aceite,"3i|v""¾3k|v"" (80¾95 mm)",,115,125,137,218,pendiente,media,true
+15818,LLB-10,"laJe de 0anda de 7Gle¯ mGltiGsos - 1i|t""¾`i|t"" (38¾165 mm)",laJe de 0anda de 7Gle¯ mGltiGsos,"1i|t""¾`i|t"" (38¾165 mm)",,280,310,340,218,pendiente,media,true
+14526,LL-BA-FA,"laJe de 0anda de nylon para filtro de aceite - k|v""¾`""(20¾150 mm)",laJe de 0anda de nylon para filtro de aceite,"k|v""¾`""(20¾150 mm)",,150,165,180,218,pendiente,media,true
+15490,LL-GA,"laJe Bara tanCGe de 6as¯ c"" - c (23 cm) o|z (22 mm)","laJe Bara tanCGe de 6as¯ c""",c (23 cm) o|z (22 mm),,64,70,77,218,pendiente,media,true
+21804,LL-GA-P,"laJe Bara tanCGe de 6as¯ c"" - c (23 cm) o|z (22 mm)","laJe Bara tanCGe de 6as¯ c""",c (23 cm) o|z (22 mm),,26,29,32,218,pendiente,media,true
+13140,LLC-802,laJe de cadena tiBo caim/n¯ Gso Besado - [ k|sx—\ i|t (30—65 mm),laJe de cadena tiBo caim/n¯ Gso Besado,[ k|sx—\ i|t (30—65 mm),,1295,1430,1580,218,pendiente,media,true
+14543,LL-FA-MA,laJe de 3 BGntos Bara 5iltro de aceite - ]—^ i|t (75—115 mm),laJe de 3 BGntos Bara 5iltro de aceite,]—^ i|t (75—115 mm),,425,465,515,218,pendiente,media,true
+102621,TAP-PA,"Tapas de repuesto para pinturas en aerosol, precio por bolsa con 10 piezas","Tapas de repuesto para pinturas en aerosol, precio por bolsa con 10 piezas",,TRUPER,7,7.70,8.50,298,pendiente,alta,false
+19031,PA-NB,estándar Colores - Negro brillante,estándar Colores,Negro brillante,,,,,298,pendiente,media,true
+19054,PA-NS,estándar Colores - Negro satín,estándar Colores,Negro satín,,,,,298,pendiente,media,true
+19033,PA-NM,estándar Colores - Negro mate,estándar Colores,Negro mate,,,,,298,pendiente,media,true
+19044,PA-GO,estándar Colores - Gris oscuro,estándar Colores,Gris oscuro,,,,,298,pendiente,media,true
+19056,PAP-GR,estándar Colores - Gris primario,estándar Colores,Gris primario,,,,,298,pendiente,media,true
+12733,PA-GA,estándar Colores - Gris acero,estándar Colores,Gris acero,,,,,298,pendiente,media,true
+19045,PA-GC,estándar Colores - Gris claro,estándar Colores,Gris claro,,,,,298,pendiente,media,true
+19037,PA-AC-P,Colores neón,Colores neón,,,,,,298,pendiente,baja,true
+12732,PAF-AZ,Colores neón - Azul,Colores neón,Azul,,,,,298,pendiente,baja,true
+19047,Color,Colores para altas temperaturas,Colores para altas temperaturas,,,,,,298,pendiente,baja,true
+27170,PA-NB-P,Colores estándar - Negro brillante,Colores estándar,Negro brillante,,,,,298,pendiente,media,true
+27183,PA-NS-P,Colores estándar - Negro satín,Colores estándar,Negro satín,,,,,298,pendiente,media,true
+27172,PA-NM-P,Colores estándar - Negro mate,Colores estándar,Negro mate,,,,,298,pendiente,media,true
+27004,PA-GO-P,Colores estándar - Gris oscuro,Colores estándar,Gris oscuro,,,,,298,pendiente,media,true
+27003,PA-AC-P,Colores neón,Colores neón,,,,,,298,pendiente,media,true
+27181,PA-NA-P,Colores neón,Colores neón,,,,,,298,pendiente,media,true
+27173,PA-RO-P,Colores neón,Colores neón,,,,,,298,pendiente,media,true
+27179,PA-TA-P,Colores neón,Colores neón,,,,,,298,pendiente,media,true
+27178,PA-AH-P,Colores neón,Colores neón,,,,,,298,pendiente,media,true
+27180,PAM-OR-P,Colores metálicos - Oro,Colores metálicos,Oro,,,,,298,pendiente,media,true
+27174,PAM-PL-P,Colores metálicos - Plata,Colores metálicos,Plata,,,,,298,pendiente,media,true
+27177,PAM-CR-P,Colores metálicos - Cromo,Colores metálicos,Cromo,,,,,298,pendiente,media,true
+12778,PAM-NE,metálicos - Negro,metálicos,Negro,,,,,298,pendiente,media,true
+19059,PAM-PL,metálicos - Plata,metálicos,Plata,,,,,298,pendiente,media,true
+19053,PAM-CR,metálicos - Cromo,metálicos,Cromo,,,,,298,pendiente,media,true
+19066,PAM-OR,metálicos - Oro,metálicos,Oro,,,,,298,pendiente,media,true
+19067,PAM-CO,metálicos - Cobre,metálicos,Cobre,,,,,298,pendiente,media,true
+12779,PAM-RO,metálicos - Rojo,metálicos,Rojo,,,,,298,pendiente,media,true
+12062,PAF-AM,Colores neón - Amarillo,Colores neón,Amarillo,,,,,298,pendiente,media,true
+19072,PAF-NA,Colores neón - Naranja,Colores neón,Naranja,,,,,298,pendiente,media,true
+19074,PAF-RS,Colores neón - Rosa,Colores neón,Rosa,,,,,298,pendiente,media,true
+12061,PAF-AZ,Colores neón - Azul,Colores neón,Azul,,,,,298,pendiente,media,true
+19073,PAF-VE,Colores neón - Verde,Colores neón,Verde,,,,,298,pendiente,media,true
+18070,PA-ALTE-N,Colores para altas temperaturas - Negro,Colores para altas temperaturas,Negro,,,,,298,pendiente,media,true
+18071,PA-ALTE-A,Colores para altas temperaturas - Aluminio,Colores para altas temperaturas,Aluminio,,,,,298,pendiente,media,true
+18072,PICE-10,"Pigmentos para cemento, 1 kg - Negro","Pigmentos para cemento, 1 kg",Negro,TRUPER,78,86,96,298,pendiente,alta,false
+18073,PICE-11,"Pigmentos para cemento, 1 kg - Amarillo óxido","Pigmentos para cemento, 1 kg",Amarillo óxido,TRUPER,78,86,96,298,pendiente,alta,false
+18074,PICE-12,"Pigmentos para cemento, 1 kg - Rojo óxido","Pigmentos para cemento, 1 kg",Rojo óxido,TRUPER,78,86,96,298,pendiente,alta,false
+103267,PICE-13,"Pigmentos para cemento, 1 kg - Azul","Pigmentos para cemento, 1 kg",Azul,TRUPER,107,117,127,298,pendiente,alta,false
+14270,GU-812,Protección química Guantes de neopreno para manejo de solventes - /b,Protección química Guantes de neopreno para manejo de solventes,/b,,77,85,95,338,pendiente,alta,false
+14271,GU-813,Protección química Guantes de neopreno para manejo de solventes - /c,Protección química Guantes de neopreno para manejo de solventes,/c,,77,85,95,338,pendiente,alta,false
+103820,GU-814,Protección química Guantes de neopreno para manejo de solventes - /[Y,Protección química Guantes de neopreno para manejo de solventes,/[Y,,77,85,95,338,pendiente,alta,false
+15322,GU-821,Protección química Guantes de nitrilo para manejo de solventes - /a,Protección química Guantes de nitrilo para manejo de solventes,/a,,55,60,66,338,pendiente,alta,false
+15323,GU-822,Protección química Guantes de nitrilo para manejo de solventes - /b,Protección química Guantes de nitrilo para manejo de solventes,/b,,55,60,66,338,pendiente,alta,false
+15324,GU-823,Protección química Guantes de nitrilo para manejo de solventes - /c,Protección química Guantes de nitrilo para manejo de solventes,/c,,55,60,66,338,pendiente,alta,false
+14268,GU-322,"Protección química Guantes de látex uso industrial, puño extra largo - /b","Protección química Guantes de látex uso industrial, puño extra largo",/b,,135,150,165,338,pendiente,alta,false
+14269,GU-323,"Protección química Guantes de látex uso industrial, puño extra largo - /c","Protección química Guantes de látex uso industrial, puño extra largo",/c,,135,150,165,338,pendiente,alta,false
+103778,GU-324,"Protección química Guantes de látex uso industrial, puño extra largo - /[Y","Protección química Guantes de látex uso industrial, puño extra largo",/[Y,,135,150,165,338,pendiente,alta,false
+29941,GU-340,C6,,C6,,26,29,32,338,pendiente,media,true
+23263,GU-341,C7,,C7,,26,29,32,338,pendiente,media,true
+23260,GU-342,× 8,,× 8,,26,29,32,338,pendiente,media,true
+23261,GU-343,9,,9,,26,29,32,338,pendiente,media,true
+29942,GU-344,10,,10,,26,29,32,338,pendiente,media,true
+29946,GU-345,C6,,C6,,26,29,32,338,pendiente,media,true
+29948,GU-347,"Limpieza Guantes de látex 100% natural, para limpieza","Limpieza Guantes de látex 100% natural, para limpieza",,,26,29,32,338,pendiente,media,true
+29949,GU-348,"Limpieza Guantes de látex 100% natural, para limpieza","Limpieza Guantes de látex 100% natural, para limpieza",,,26,29,32,338,pendiente,media,true
+29950,GU-349,"Limpieza Guantes de látex 100% natural, para limpieza","Limpieza Guantes de látex 100% natural, para limpieza",,,26,29,32,338,pendiente,media,true
+103970,GU-351,Protección química Guantes de látex uso industrial - /a,Protección química Guantes de látex uso industrial,/a,,50,55,60,338,pendiente,alta,false
+14266,GU-352,Protección química Guantes de látex uso industrial - /b,Protección química Guantes de látex uso industrial,/b,,50,55,60,338,pendiente,alta,false
+14267,GU-353,Protección química Guantes de látex uso industrial - /c,Protección química Guantes de látex uso industrial,/c,,50,55,60,338,pendiente,alta,false
+103971,GU-354,Protección química Guantes de látex uso industrial - /[Y,Protección química Guantes de látex uso industrial,/[Y,,50,55,60,338,pendiente,alta,false
+13297,GU-331,Limpieza Guantes de látex 100% natural Protección química Guantes de </FeL>e@Bre>@ para limpieza - /a,Limpieza Guantes de látex 100% natural Protección química Guantes de </FeL>e@Bre>@ para limpieza,/a,,45,50,55,338,pendiente,media,true
+15268,GU-332,Limpieza Guantes de látex 100% natural Protección química Guantes de </FeL>e@Bre>@ para limpieza - /b,Limpieza Guantes de látex 100% natural Protección química Guantes de </FeL>e@Bre>@ para limpieza,/b,,45,50,55,338,pendiente,media,true
+15269,GU-333,Limpieza Guantes de látex 100% natural Protección química Guantes de </FeL>e@Bre>@ para limpieza - /c,Limpieza Guantes de látex 100% natural Protección química Guantes de </FeL>e@Bre>@ para limpieza,/c,,45,50,55,338,pendiente,media,true
+103712,GU-334,Limpieza Guantes de látex 100% natural Protección química Guantes de </FeL>e@Bre>@ para limpieza - /[Y,Limpieza Guantes de látex 100% natural Protección química Guantes de </FeL>e@Bre>@ para limpieza,/[Y,,45,50,55,338,pendiente,media,true
+13296,GU-311,"Limpieza Guantes de látex 100% natural, para limpieza - /a","Limpieza Guantes de látex 100% natural, para limpieza",/a,,33,36,39,338,pendiente,media,true
+14262,GU-312,"Limpieza Guantes de látex 100% natural, para limpieza - /b","Limpieza Guantes de látex 100% natural, para limpieza",/b,,33,36,39,338,pendiente,media,true
+14263,GU-313,"Limpieza Guantes de látex 100% natural, para limpieza - /c","Limpieza Guantes de látex 100% natural, para limpieza",/c,,33,36,39,338,pendiente,media,true
+103692,GU-314,"Limpieza Guantes de látex 100% natural, para limpieza - /[Y","Limpieza Guantes de látex 100% natural, para limpieza",/[Y,,33,36,39,338,pendiente,media,true
+18622,TP-5,r 5 lb (2.3 kg),r 5 lb (2.3 kg),,,275,300,330,378,pendiente,media,true
+18620,ZP-5,E o,E o,,,235,255,280,378,pendiente,media,true
+48171,SEMO-6,"Sensores de movimiento, de sobreponer en techo, 360° - 6 m 800 W 8 A 4 cm","Sensores de movimiento, de sobreponer en techo, 360°",6 m 800 W 8 A 4 cm,,157,172,187,418,pendiente,alta,false
+46599,SEMO-IN,"Sensores de movimiento, de sobreponer en techo, 360° - 10 m 800 W 12 A 6 cm","Sensores de movimiento, de sobreponer en techo, 360°",10 m 800 W 12 A 6 cm,,240,265,290,418,pendiente,alta,false
+48172,SEMO-20,"Sensores de movimiento, de sobreponer en techo, 360° - 20 m 1,000 W 9 A 3 cm","Sensores de movimiento, de sobreponer en techo, 360°","20 m 1,000 W 9 A 3 cm",,295,325,355,418,pendiente,alta,false
+46595,SEMO-AL,,,,,185,205,225,418,enriquecido,media,true
+43669,SEMO-20,"Sensores de movimiento, de sobreponer en techo, 360°","Sensores de movimiento, de sobreponer en techo, 360°",,,295,325,355,418,pendiente,baja,true
+47231,SEMO-EX,,,,,165,180,200,418,enriquecido,media,true
+46594,SEMO-180,,,,,150,165,180,418,pendiente,media,true
+43571,SEMO-ALI,,,,,385,425,465,418,pendiente,media,true
+49246,R-507,y 3 (8 cm) con extensión tipo teléfono - Regadera,y 3 (8 cm) con extensión tipo teléfono,Regadera,,140,155,170,458,enriquecido,alta,false
+49378,BCH-500,Brazos de pared para regadera - Cromo,Brazos de pared para regadera,Cromo,,77,85,95,458,pendiente,alta,false
+47647,BCH-500M,Brazos de pared para regadera - #»402 M #401 Negro mate,Brazos de pared para regadera,#»402 M #401 Negro mate,,85,95,105,458,pendiente,alta,false
+49450,R-007,Regadera 2 1⁄2 (6 cm) con extensión tipo teléfono,Regadera 2 1⁄2 (6 cm) con extensión tipo teléfono,,,335,365,400,458,enriquecido,alta,false
+47653,)C-562,Válvula de llenado para tanque estacionario de gas LP,Válvula de llenado para tanque estacionario de gas LP,,,360,395,435,498,pendiente,baja,true
+47654,)C-563,Válvula de seguridad externa para tanque estacionario de gas LP,Válvula de seguridad externa para tanque estacionario de gas LP,,,290,320,350,498,pendiente,baja,true
+47656,)C-565,Acoplador de llenado para tanque estacionario de gas LP,Acoplador de llenado para tanque estacionario de gas LP,,,200,220,240,498,pendiente,baja,true
+47657,)C--12,"roscables de globo gas LP, de hierro - i|t","roscables de globo gas LP, de hierro",i|t,,300,330,360,498,pendiente,baja,true
+47658,)C--34,"roscables de globo gas LP, de hierro - k|v","roscables de globo gas LP, de hierro",k|v,,310,340,375,498,pendiente,baja,true
+47652,)C-561,Válvula de servicio para tanque estacionario de gas LP,Válvula de servicio para tanque estacionario de gas LP,,,235,255,280,498,pendiente,baja,true
+47655,)C-564,Válvula de seguridad interna para tanque estacionario de gas LP,Válvula de seguridad interna para tanque estacionario de gas LP,,,180,200,220,498,pendiente,baja,true
+44969,kg,"rilletes de acero 5orjado - k⁄z"" (10 mm) 1 k⁄v"" (45 mm) o⁄sx"" (11 mm)",rilletes de acero 5orjado,"k⁄z"" (10 mm) 1 k⁄v"" (45 mm) o⁄sx"" (11 mm)",,45,50,55,538,enriquecido,baja,true
+44970,kg,"rilletes de acero 5orjado - o⁄sx"" (11 mm) 2 1⁄sx"" (52 mm) 1⁄2"" (13 mm)",rilletes de acero 5orjado,"o⁄sx"" (11 mm) 2 1⁄sx"" (52 mm) 1⁄2"" (13 mm)",,52,57,62,538,enriquecido,baja,true
+44971,kg,"rilletes de acero 5orjado - 1⁄2"" (13 mm) 2 1⁄v"" (57 mm) m⁄z"" (16 mm)",rilletes de acero 5orjado,"1⁄2"" (13 mm) 2 1⁄v"" (57 mm) m⁄z"" (16 mm)",,63,69,76,538,enriquecido,baja,true
+44972,kg,"rilletes de acero 5orjado - m⁄z"" (16 mm) 3"" (75 mm) k⁄v"" (19 mm)",rilletes de acero 5orjado,"m⁄z"" (16 mm) 3"" (75 mm) k⁄v"" (19 mm)",,110,120,130,538,enriquecido,baja,true
+44973,kg,"rilletes de acero 5orjado - k⁄v"" (19 mm) 3 1⁄2"" (90 mm) o⁄z"" (22 mm)",rilletes de acero 5orjado,"k⁄v"" (19 mm) 3 1⁄2"" (90 mm) o⁄z"" (22 mm)",,170,185,205,538,enriquecido,baja,true
+44974,kg,"rilletes de acero 5orjado - o⁄z"" (22 mm) 4"" (100 mm) 1"" (25 mm)",rilletes de acero 5orjado,"o⁄z"" (22 mm) 4"" (100 mm) 1"" (25 mm)",,255,280,310,538,enriquecido,baja,true
+44975,kg,"rilletes de acero 5orjado - 1"" (25 mm) 4 m⁄z"" (118 mm)1 1⁄z"" (28.5 mm)",rilletes de acero 5orjado,"1"" (25 mm) 4 m⁄z"" (118 mm)1 1⁄z"" (28.5 mm)",,345,380,420,538,enriquecido,baja,true
+44060,kg,"%ensores de acero¯ gancho-gancho - 2 1⁄2"" (64 mm) 3⁄sx"" (5 mm)",%ensores de acero¯ gancho-gancho,"2 1⁄2"" (64 mm) 3⁄sx"" (5 mm)",,17,19,21,538,enriquecido,baja,true
+44061,kg,"%ensores de acero¯ gancho-gancho - 3"" (75 mm) 1⁄v"" (6.5 mm)",%ensores de acero¯ gancho-gancho,"3"" (75 mm) 1⁄v"" (6.5 mm)",,29,32,35,538,enriquecido,baja,true
+44062,kg,"%ensores de acero¯ gancho-gancho - 3 1⁄2"" (90 mm) 5⁄sx"" (8 mm)",%ensores de acero¯ gancho-gancho,"3 1⁄2"" (90 mm) 5⁄sx"" (8 mm)",,39,43,47,538,enriquecido,baja,true
+44063,kg,"%ensores de acero¯ gancho-gancho - 4"" (100 mm) 3⁄8"" (10 mm)",%ensores de acero¯ gancho-gancho,"4"" (100 mm) 3⁄8"" (10 mm)",,52,57,62,538,enriquecido,baja,true
+44067,kg,"de acero 5orjado¯ gancho-ojo - 6"" (150 mm) 1⁄2"" (13 mm)",de acero 5orjado¯ gancho-ojo,"6"" (150 mm) 1⁄2"" (13 mm)",,150,165,180,538,enriquecido,baja,true
+44068,kg,"de acero 5orjado¯ gancho-ojo - 9"" (225 mm) 5⁄8"" (16 mm)",de acero 5orjado¯ gancho-ojo,"9"" (225 mm) 5⁄8"" (16 mm)",,275,300,330,538,enriquecido,baja,true
+43917,kg,"de acero 5orjado¯ gancho-ojo - 12"" (300 mm) 5⁄8"" (16 mm)",de acero 5orjado¯ gancho-ojo,"12"" (300 mm) 5⁄8"" (16 mm)",,300,330,360,538,enriquecido,baja,true
+44069,kg,"de acero 5orjado¯ gancho-ojo - 9"" (225 mm) 3⁄v"" (19 mm)",de acero 5orjado¯ gancho-ojo,"9"" (225 mm) 3⁄v"" (19 mm)",,375,410,450,538,enriquecido,baja,true
+44070,kg,"de acero 5orjado¯ gancho-ojo - 12"" (300 mm) o⁄8"" (22 mm)",de acero 5orjado¯ gancho-ojo,"12"" (300 mm) o⁄8"" (22 mm)",,625,690,760,538,enriquecido,baja,true
+44071,TENF-1,"de acero 5orjado¯ gancho-ojo - 2,250 kg 12"" (300 mm) 1"" (25 mm)",de acero 5orjado¯ gancho-ojo,"2,250 kg 12"" (300 mm) 1"" (25 mm)",,875,970,1070,538,enriquecido,media,true
+44053,%-316A,"%ensores de acero¯ gancho-ojo - 40 kg 2 1⁄2"" (64 mm) 3⁄sx"" (5 mm)",%ensores de acero¯ gancho-ojo,"40 kg 2 1⁄2"" (64 mm) 3⁄sx"" (5 mm)",,17,19,21,538,enriquecido,baja,true
+44054,%-14A,"%ensores de acero¯ gancho-ojo - 50 kg 3"" (75 mm) 1⁄v"" (6.5 mm)",%ensores de acero¯ gancho-ojo,"50 kg 3"" (75 mm) 1⁄v"" (6.5 mm)",,29,32,35,538,enriquecido,baja,true
+44055,%-516A,"%ensores de acero¯ gancho-ojo - 100 kg 3 1⁄2"" (90 mm) 5⁄sx"" (8 mm)",%ensores de acero¯ gancho-ojo,"100 kg 3 1⁄2"" (90 mm) 5⁄sx"" (8 mm)",,39,43,47,538,enriquecido,baja,true
+44056,%-38A,"%ensores de acero¯ gancho-ojo - 200 kg 4"" (100 mm) 3⁄8"" (10 mm)",%ensores de acero¯ gancho-ojo,"200 kg 4"" (100 mm) 3⁄8"" (10 mm)",,52,57,62,538,enriquecido,baja,true
+43370,LLCANGA-M,Llave magnética para candado CANGA-100,Llave magnética para candado CANGA-100,,,295,295,295,598,enriquecido,alta,false
+43369,CANGA-100,Caja con 100 candados para gancho exhibidor y llave,Caja con 100 candados para gancho exhibidor y llave,,,575,575,575,598,pendiente,alta,false
+59988,PAPE-60,Paneles Caja con 100 candados para gancho exhibidor y llave - 60 × 60 cm,Paneles Caja con 100 candados para gancho exhibidor y llave,60 × 60 cm,,700,700,700,598,enriquecido,alta,false
+59989,PAPE-80,Paneles Caja con 100 candados para gancho exhibidor y llave - 80 × 80 cm,Paneles Caja con 100 candados para gancho exhibidor y llave,80 × 80 cm,,1100,1100,1100,598,pendiente,alta,false
+55337,PAPE-120,Paneles Caja con 100 candados para gancho exhibidor y llave - 60 × 120 cm,Paneles Caja con 100 candados para gancho exhibidor y llave,60 × 120 cm,,1300,1300,1300,598,pendiente,alta,false
+55338,PAPE-180,Paneles Caja con 100 candados para gancho exhibidor y llave - 60 × 180 cm,Paneles Caja con 100 candados para gancho exhibidor y llave,60 × 180 cm,,1700,1700,1700,598,pendiente,alta,false
+59990,PAPE-240,Paneles Caja con 100 candados para gancho exhibidor y llave - 120 × 240 cm,Paneles Caja con 100 candados para gancho exhibidor y llave,120 × 240 cm,,4500,4500,4500,598,enriquecido,alta,false
+59991,PARA-60,Llave magnética para candado CANGA-100 - 60 × 60 cm,Llave magnética para candado CANGA-100,60 × 60 cm,,650,650,650,598,enriquecido,alta,false
+59992,PARA-80,Llave magnética para candado CANGA-100 - 80 × 80 cm,Llave magnética para candado CANGA-100,80 × 80 cm,,900,900,900,598,enriquecido,alta,false
+55135,PARA-140,Llave magnética para candado CANGA-100 - 60 × 140 cm,Llave magnética para candado CANGA-100,60 × 140 cm,,1000,1000,1000,598,pendiente,alta,false
+55156,PARA-180,Llave magnética para candado CANGA-100 - 60 × 180 cm,Llave magnética para candado CANGA-100,60 × 180 cm,,1200,1200,1200,598,pendiente,alta,false
+59993,PARA-240,Llave magnética para candado CANGA-100 - 120 × 240 cm,Llave magnética para candado CANGA-100,120 × 240 cm,,4000,4000,4000,598,enriquecido,alta,false
+50159,GA-ML,Gancho metálico para herramienta mango largo - [_ (38 cm),Gancho metálico para herramienta mango largo,[_ (38 cm),,80,80,80,598,pendiente,alta,false
+50150,GA-4X,metálicos rectos con portaetiqueta mango “Y” - ^ (10 cm),metálicos rectos con portaetiqueta mango “Y”,^ (10 cm),,12,12,12,598,pendiente,alta,false
+50153,GA-6X,metálicos rectos con portaetiqueta mango “Y” - ` (15 cm),metálicos rectos con portaetiqueta mango “Y”,` (15 cm),,16,16,16,598,pendiente,alta,false
+50156,GA-9X,metálicos rectos con portaetiqueta mango “Y” - c (23 cm),metálicos rectos con portaetiqueta mango “Y”,c (23 cm),,99,99,99,598,pendiente,alta,false
+55962,GA-2P,plásticos rectos de - \ (5 cm),plásticos rectos de,\ (5 cm),,4,4,4,598,pendiente,alta,false
+55963,GA-4P,plásticos rectos de - ^ (10 cm),plásticos rectos de,^ (10 cm),,5,5,5,598,pendiente,alta,false
+55964,GA-6P,plásticos rectos de - ` (15 cm),plásticos rectos de,` (15 cm),,6,6,6,598,pendiente,alta,false
+50146,GA-2,metálicos rectos Ganchos - \ (5 cm),metálicos rectos Ganchos,\ (5 cm),,8,8,8,598,pendiente,alta,false
+50149,GA-4,metálicos rectos Ganchos - ^ (10 cm),metálicos rectos Ganchos,^ (10 cm),,9,9,9,598,pendiente,alta,false
+50152,GA-6,metálicos rectos Ganchos - ` (15 cm),metálicos rectos Ganchos,` (15 cm),,10,10,10,598,pendiente,alta,false
+50155,GA-8,metálicos rectos Ganchos - b (20 cm),metálicos rectos Ganchos,b (20 cm),,11,11,11,598,pendiente,alta,false
+50255,C-41X20X12,Gaveta plástica acero - 42 × 21 × 12 cm,Gaveta plástica acero,42 × 21 × 12 cm,,175,175,175,598,pendiente,alta,false
+50253,C-80X21X12,Gaveta plástica acero - 81 × 22 × 12 cm,Gaveta plástica acero,81 × 22 × 12 cm,,250,250,250,598,pendiente,alta,false
+50252,C-39X33X14,Gaveta plástica acero - 42 × 34 × 14 cm,Gaveta plástica acero,42 × 34 × 14 cm,,250,250,250,598,pendiente,alta,false
+50251,C-59X33X14,Gaveta plástica acero - 60 × 34 × 14 cm,Gaveta plástica acero,60 × 34 × 14 cm,,40,40,40,598,pendiente,alta,false
+55950,VITRO-G,Gaveta plástica,Gaveta plástica,,,40,40,40,598,pendiente,alta,false
+50163,GA-D,Gancho metálico para herramienta mango “Y” - [[ (28 cm),Gancho metálico para herramienta mango “Y”,[[ (28 cm),,99,99,99,598,pendiente,alta,false
+10259,GA-10R,Gancho metálico recto reforzado con portaetiqueta - [Y (25 cm),Gancho metálico recto reforzado con portaetiqueta,[Y (25 cm),,42,42,42,598,pendiente,alta,false
+59962,GA-4D,dobles para perfocel y panel con portaetiqueta mango largo - ^ (10 cm),dobles para perfocel y panel con portaetiqueta mango largo,^ (10 cm),,12,12,12,598,pendiente,alta,false
+59963,GA-6D,dobles para perfocel y panel con portaetiqueta mango largo - ` (15 cm),dobles para perfocel y panel con portaetiqueta mango largo,` (15 cm),,15,15,15,598,pendiente,alta,false
+59964,GA-8D,dobles para perfocel y panel con portaetiqueta mango largo - b (20 cm),dobles para perfocel y panel con portaetiqueta mango largo,b (20 cm),,80,80,80,598,pendiente,alta,false

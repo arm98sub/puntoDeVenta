@@ -1,0 +1,2 @@
+-r requirements-pos.txt
+pyinstaller==6.15.0

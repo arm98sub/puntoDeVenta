@@ -1,0 +1,172 @@
+{
+  "pdf": "catalogo_nacional_2026.pdf",
+  "paginas_pdf": 644,
+  "paginas_muestra": [
+    20,
+    28,
+    36,
+    45,
+    53,
+    61,
+    69,
+    77,
+    85,
+    94,
+    102,
+    110,
+    118,
+    126,
+    134,
+    143,
+    151,
+    159,
+    167,
+    175,
+    183,
+    192,
+    200,
+    208,
+    216,
+    224,
+    232,
+    241,
+    249,
+    257,
+    265,
+    273,
+    281,
+    290,
+    298,
+    306,
+    314,
+    322,
+    330,
+    339,
+    347,
+    355,
+    363,
+    371,
+    379,
+    388,
+    396,
+    404,
+    412,
+    420,
+    428,
+    437,
+    445,
+    453,
+    461,
+    469,
+    477,
+    486,
+    494,
+    502,
+    510,
+    518,
+    526,
+    535,
+    543,
+    551,
+    559,
+    567,
+    575,
+    584,
+    592,
+    600
+  ],
+  "cantidad_paginas_muestra": 72,
+  "ground_truth_disponible": 1221,
+  "comparados": 107,
+  "parser_anterior": {
+    "productos_ground_truth": 107,
+    "codigo_exacto": {
+      "cantidad": 107,
+      "porcentaje": 100.0
+    },
+    "clave_exacta": {
+      "cantidad": 81,
+      "porcentaje": 75.7
+    },
+    "precio_publico_recuperado": {
+      "cantidad": 101,
+      "porcentaje": 94.39
+    },
+    "descripcion_utilizable": {
+      "cantidad": 84,
+      "porcentaje": 78.5
+    },
+    "descripcion_exacta": {
+      "cantidad": 0,
+      "porcentaje": 0.0
+    },
+    "descripcion_normalizada": {
+      "cantidad": 3,
+      "porcentaje": 2.8
+    },
+    "descripcion_similar_60": {
+      "cantidad": 31,
+      "porcentaje": 28.97
+    },
+    "confianza_alta": {
+      "cantidad": 76,
+      "porcentaje": 71.03
+    },
+    "revision_necesaria": {
+      "cantidad": 31,
+      "porcentaje": 28.97
+    },
+    "errores_clave": 26
+  },
+  "parser_nuevo": {
+    "productos_ground_truth": 107,
+    "codigo_exacto": {
+      "cantidad": 107,
+      "porcentaje": 100.0
+    },
+    "clave_exacta": {
+      "cantidad": 105,
+      "porcentaje": 98.13
+    },
+    "precio_publico_recuperado": {
+      "cantidad": 106,
+      "porcentaje": 99.07
+    },
+    "descripcion_utilizable": {
+      "cantidad": 93,
+      "porcentaje": 86.92
+    },
+    "descripcion_exacta": {
+      "cantidad": 0,
+      "porcentaje": 0.0
+    },
+    "descripcion_normalizada": {
+      "cantidad": 3,
+      "porcentaje": 2.8
+    },
+    "descripcion_similar_60": {
+      "cantidad": 34,
+      "porcentaje": 31.78
+    },
+    "confianza_alta": {
+      "cantidad": 92,
+      "porcentaje": 85.98
+    },
+    "revision_necesaria": {
+      "cantidad": 15,
+      "porcentaje": 14.02
+    },
+    "errores_clave": 2
+  },
+  "rendimiento": {
+    "duracion_segundos": 137.681,
+    "extraccion_paginas_segundos": 137.551,
+    "segundos_por_pagina": 1.91,
+    "estimacion_644_paginas_segundos": 1230.3
+  },
+  "fuentes": {
+    "pymupdf_disponible_localmente": false,
+    "metodo_nuevo": "pdfplumber para coordenadas + cmap/glyf TrueType embebido mediante pypdf",
+    "hallazgo": "Los subconjuntos CID carecen de cmap utilizable; se emparejan contornos con la copia TrueType de la misma familia."
+  }
+}

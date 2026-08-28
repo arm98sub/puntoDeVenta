@@ -1,0 +1,32 @@
+{
+  "products_from_brand_search": 1201,
+  "rows_seen": 1204,
+  "duplicates": 3,
+  "errors": 0,
+  "products_by_brand": {
+    "FIERO": 196,
+    "FOSET": 86,
+    "FOSET AERO": 3,
+    "FOSET AQUA": 15,
+    "FOSET BASIC": 38,
+    "FOSET COPPERFLOW": 6,
+    "FOSET ELEMENT": 2,
+    "FOSET GALVAFLOW": 5,
+    "FOSET HIDROFLOW": 13,
+    "FOSET SANIFLOW": 3,
+    "FOSET TERMOFLOW": 15,
+    "FOSET TUBIG": 4,
+    "HERMEX": 172,
+    "HERMEX BASIC": 17,
+    "KLINTEK": 62,
+    "PRETUL": 185,
+    "TRUPER": 94,
+    "TRUPER EXPERT": 92,
+    "TRUPER INDUSTRIAL": 1,
+    "VOLTECK": 149,
+    "VOLTECK BASIC": 24,
+    "VOLTECK LAIT": 19
+  },
+  "requests_current_run": 307,
+  "elapsed_seconds_current_run": 486.375
+}

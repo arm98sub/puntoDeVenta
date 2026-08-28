@@ -1,0 +1,17 @@
+ACTUALIZAR PUNTO DE VENTA A v1.1.4
+
+1. Copie completa esta carpeta a la laptop o computadora del negocio.
+2. Cierre PuntoDeVenta.
+3. Haga doble clic en ActualizarPuntoDeVenta.exe.
+4. Revise la ubicación encontrada y pulse ACTUALIZAR.
+5. Espere el mensaje "Actualización completada".
+6. Pulse ABRIR PUNTO DE VENTA.
+
+No necesita abrir PowerShell, escribir rutas ni seleccionar ferreteria.db.
+
+El actualizador crea primero un respaldo y conserva productos, inventario,
+ventas, configuración, branding, tickets, respaldos y logs.
+
+Si encuentra varias instalaciones, seleccione la correcta. Si no encuentra
+ninguna, pulse BUSCAR CARPETA y seleccione la carpeta que contiene
+PuntoDeVenta.exe.

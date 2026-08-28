@@ -1,0 +1,25 @@
+ACTUALIZACIÓN SEGURA A PUNTO DE VENTA v1.1.1
+
+1. Cierre completamente PuntoDeVenta.exe.
+2. Copie la carpeta PuntoDeVenta_v1.1.1 a la computadora del negocio.
+3. Abra PowerShell dentro de esa carpeta.
+4. Ejecute:
+
+   powershell -ExecutionPolicy Bypass -File .\actualizar_v1.1.1.ps1
+
+El destino predeterminado es C:\PuntoDeVenta. Para otra ubicación:
+
+   powershell -ExecutionPolicy Bypass -File .\actualizar_v1.1.1.ps1 -Destino "D:\PuntoDeVenta"
+
+El script exige que ya exista data\ferreteria.db, crea primero un respaldo en
+backups\manual y copia únicamente PuntoDeVenta.exe y _internal.
+
+NUNCA reemplaza ni copia al paquete:
+- data\ferreteria.db
+- data\branding\
+- tickets\
+- backups\
+- logs\
+
+Si no encuentra la base existente o el programa está abierto, se detiene antes de
+actualizar archivos de la aplicación.

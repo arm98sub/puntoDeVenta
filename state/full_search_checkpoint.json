@@ -1,0 +1,38 @@
+{
+  "terms": {
+    "truper": {
+      "next_page": 11,
+      "done": true
+    },
+    "pretul": {
+      "next_page": 11,
+      "done": true
+    },
+    "volteck": {
+      "next_page": 11,
+      "done": true
+    },
+    "foset": {
+      "next_page": 11,
+      "done": true
+    },
+    "fiero": {
+      "next_page": 11,
+      "done": true
+    },
+    "hermex": {
+      "next_page": 11,
+      "done": true
+    },
+    "klintek": {
+      "next_page": 5,
+      "done": true
+    }
+  },
+  "stats": {
+    "rows_seen": 1204,
+    "duplicates": 3,
+    "errors": 0
+  },
+  "updated_at": "2026-08-18T23:49:37"
+}

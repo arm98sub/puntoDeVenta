@@ -1,0 +1,47 @@
+PUNTO DE VENTA 1.1.0 - INSTALACIÓN PORTABLE
+============================================================
+
+IMPORTANTE: NO copie únicamente PuntoDeVenta.exe.
+Debe copiarse TODA la carpeta PuntoDeVenta.
+
+INSTALACIÓN
+
+1. Cierre el POS en la computadora de origen.
+2. Copie completa la carpeta PuntoDeVenta a una memoria USB o unidad externa.
+3. En la computadora de la ferretería, péguela preferentemente en:
+      C:\PuntoDeVenta
+   o en:
+      C:\Users\<usuario>\PuntoDeVenta
+4. Evite instalarla dentro de OneDrive u otra carpeta sincronizada activamente.
+   SQLite debe trabajar sobre almacenamiento local normal.
+5. Abra PuntoDeVenta.exe. No requiere terminal, entorno virtual ni Internet.
+6. Conecte el scanner USB; Windows lo reconocerá como teclado HID.
+7. Para crear el acceso directo, haga clic derecho en crear_acceso_directo.ps1,
+   elija "Ejecutar con PowerShell", o ejecútelo desde PowerShell en esta carpeta.
+8. Abra Configuración y cree un respaldo manual inicial. Debe aparecer en:
+      backups\manual\
+
+CHECKLIST DEL PRIMER ARRANQUE
+
+- Comprobar nombre y logo del negocio.
+- Abrir Productos y precios.
+- Buscar SIL-85T o un producto conocido.
+- Escanear el barcode conocido 7501206683729 sin cobrar una venta ficticia.
+- Revisar existencia del producto.
+- Abrir Historial y comprobar las ventas existentes.
+- Abrir Configuración y crear un respaldo manual.
+- Después de estas comprobaciones, realizar una venta real pequeña.
+
+DATOS
+
+La base está en data\ferreteria.db. Tickets, respaldos y logs permanecen en sus
+carpetas dentro de PuntoDeVenta. Para migrar nuevamente a otra PC, cierre el POS y
+copie otra vez la carpeta completa.
+
+SEGURIDAD DE WINDOWS
+
+La aplicación no requiere permisos de administrador, servidor, firewall ni
+Internet. Windows SmartScreen puede mostrar una advertencia porque esta versión no
+tiene firma digital. No desactive SmartScreen ni la seguridad de Windows; revise
+que el archivo provenga de esta distribución y use la opción normal de Windows para
+continuar si confía en él.
