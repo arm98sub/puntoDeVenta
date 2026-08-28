@@ -13,6 +13,7 @@ from ferreteria_core.quantity import (auxiliar_granel,cantidad_desde_mayor,forma
                                       importe_a_cantidad,subtotal_granel_centavos)
 from .presentation import calcular_pago, cantidad_producto, moneda, nombre_producto, parsear_importe, precio_producto
 from .widgets import show_error
+from .config import TRUPER_ENABLED
 
 
 class PaymentDialog(QDialog):
@@ -295,8 +296,10 @@ class QuickProductDialog(QDialog):
     """Alta única y reutilizable para Productos, Inventario y Punto de Venta."""
     def __init__(self, database, barcode="", parent=None):
         super().__init__(parent);self.database=database;self.service=ProductService(database);self.product=None;self._found=None
-        self.setWindowTitle("Registrar producto");self.setMinimumWidth(540);form=QFormLayout(self)
-        self.mode=QComboBox();self.mode.addItems(["Producto Truper","Producto externo"])
+        self.setWindowTitle("Registrar producto");self.setMinimumWidth(540);form=QFormLayout(self);self.form=form
+        self.mode=QComboBox()
+        if TRUPER_ENABLED:self.mode.addItem("Producto Truper","TRUPER")
+        self.mode.addItem("Producto externo","EXTERNAL")
         self.barcode=QLineEdit(barcode);self.code=QLineEdit();self.find=QPushButton("BUSCAR CÓDIGO TRUPER")
         code_row=QHBoxLayout();code_row.addWidget(self.code,1);code_row.addWidget(self.find)
         self.status=QLabel("Escriba el código Truper impreso en el producto.");self.status.setWordWrap(True)
@@ -307,8 +310,10 @@ class QuickProductDialog(QDialog):
         form.addRow("Precio de venta / sugerido: $",self.price);form.addRow(self.variable);form.addRow(self.control);form.addRow("Existencia actual:",self.stock)
         self.buttons=QDialogButtonBox(QDialogButtonBox.Save|QDialogButtonBox.Cancel);self.buttons.button(QDialogButtonBox.Save).setText("GUARDAR Y VINCULAR");self.buttons.accepted.connect(self._save);self.buttons.rejected.connect(self.reject);form.addRow(self.buttons)
         self.mode.currentIndexChanged.connect(self._refresh_mode);self.find.clicked.connect(self._lookup);self.code.returnPressed.connect(self._lookup);self.control.toggled.connect(self.stock.setEnabled);self.kind.currentTextChanged.connect(self._stock_hint);self.bulk_unit.currentIndexChanged.connect(self._stock_hint);self._refresh_mode();self.barcode.setFocus()
+        if not TRUPER_ENABLED:
+            for widget in (self.mode,self.code,self.status,self.key):form.setRowVisible(widget,False)
     def _refresh_mode(self):
-        truper=self.mode.currentIndex()==0
+        truper=self.mode.currentData()=="TRUPER"
         for widget in (self.code,self.find,self.status,self.key):widget.setVisible(truper)
         self.kind.setEnabled(True);self.bulk_unit.setEnabled(self.kind.currentText()=="GRANEL");self._found=None
         self.description.setReadOnly(False);self.description.setPlaceholderText("Opcional" if truper else "Obligatoria")
@@ -331,7 +336,7 @@ class QuickProductDialog(QDialog):
         try:
             variable=self.variable.isChecked();price_cents=parsear_importe(self.price.text(),nombre="Precio sugerido") if self.price.text().strip() else None;price=Decimal(price_cents)/Decimal(100) if price_cents is not None else None
             if not variable and price is None:raise ValueError("El precio de venta es obligatorio para productos de precio fijo.")
-            if self.mode.currentIndex()==1:
+            if self.mode.currentData()=="EXTERNAL":
                 kind=self.kind.currentText();unit=self.bulk_unit.currentData() if kind=="GRANEL" else None;bulk=cantidad_desde_mayor(self.stock.text() or "0",unit,allow_zero=True) if kind=="GRANEL" and self.control.isChecked() else 0
                 units=_whole_stock(self.stock.text()) if kind=="UNIDAD" and self.control.isChecked() else 0
                 self.product=self.service.crear_producto_externo(self.barcode.text(),self.description.text(),price,units,tipo_venta=kind,unidad_granel=unit,existencia_granel_mg=bulk,controla_inventario=self.control.isChecked(),permitir_sin_barcode=True,precio_variable=variable)
@@ -401,7 +406,8 @@ class UnknownBarcodeDialog(QDialog):
     def __init__(self, barcode, parent=None):
         super().__init__(parent); self.setWindowTitle("Producto no registrado"); layout = QVBoxLayout(self)
         label = QLabel(f"Producto no registrado\n\nCódigo: {barcode}"); label.setAlignment(Qt.AlignCenter); label.setStyleSheet("font-size:18px;font-weight:bold"); layout.addWidget(label)
-        for text,code in (("Buscar producto Truper",self.SEARCH),("Crear producto externo",self.EXTERNAL),("Cancelar",QDialog.Rejected)):
+        choices=(("Buscar producto Truper",self.SEARCH),("Crear producto externo",self.EXTERNAL),("Cancelar",QDialog.Rejected)) if TRUPER_ENABLED else (("Crear producto",self.EXTERNAL),("Cancelar",QDialog.Rejected))
+        for text,code in choices:
             button=QPushButton(text); button.clicked.connect(lambda checked=False,c=code:self.done(c)); layout.addWidget(button)
 
 

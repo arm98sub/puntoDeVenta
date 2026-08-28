@@ -1,4 +1,7 @@
-param([switch]$IncludeRealData)
+param(
+    [switch]$IncludeRealData,
+    [ValidateSet("FERRETERIA", "GENERAL")][string]$Edition = "FERRETERIA"
+)
 
 $ErrorActionPreference = "Stop"
 $ProjectRoot = [System.IO.Path]::GetFullPath($PSScriptRoot)
@@ -25,7 +28,13 @@ Assert-SafeChild $DistTarget $ProjectRoot
 if (Test-Path -LiteralPath $BuildTarget) { Remove-Item -LiteralPath $BuildTarget -Recurse -Force }
 if (Test-Path -LiteralPath $DistTarget) { Remove-Item -LiteralPath $DistTarget -Recurse -Force }
 
-& $Python -m PyInstaller --clean --noconfirm $Spec
+$PreviousEdition = $env:PUNTO_VENTA_EDITION
+$env:PUNTO_VENTA_EDITION = $Edition
+try { & $Python -m PyInstaller --clean --noconfirm $Spec }
+finally {
+    if ($null -eq $PreviousEdition) { Remove-Item Env:PUNTO_VENTA_EDITION -ErrorAction SilentlyContinue }
+    else { $env:PUNTO_VENTA_EDITION = $PreviousEdition }
+}
 if ($LASTEXITCODE -ne 0) { throw "PyInstaller terminó con código $LASTEXITCODE" }
 
 foreach ($relative in @("data\branding", "tickets", "backups\manual", "backups\automatic", "logs")) {
@@ -36,8 +45,8 @@ Copy-Item -LiteralPath (Join-Path $ProjectRoot "crear_acceso_directo.ps1") -Dest
 
 if ($IncludeRealData) {
     & $Python (Join-Path $ProjectRoot "prepare_distribution_data.py") `
-        --source (Join-Path $ProjectRoot "data\ferreteria.db") `
-        --destination (Join-Path $DistTarget "data\ferreteria.db") `
+        --source (Join-Path $ProjectRoot $(if ($Edition -eq "GENERAL") { "data\punto_venta.db" } else { "data\ferreteria.db" })) `
+        --destination (Join-Path $DistTarget $(if ($Edition -eq "GENERAL") { "data\punto_venta.db" } else { "data\ferreteria.db" })) `
         --confirm-real-data
     if ($LASTEXITCODE -ne 0) { throw "No se pudieron preparar los datos reales" }
 }

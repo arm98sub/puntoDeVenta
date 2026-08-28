@@ -2,6 +2,7 @@ import os
 import sys
 from dataclasses import dataclass
 from pathlib import Path
+from edition import EDITION, resolve_database_path
 
 
 @dataclass(frozen=True)
@@ -10,7 +11,7 @@ class AppPaths:
     @property
     def data_dir(self): return self.root / "data"
     @property
-    def database(self): return self.data_dir / "ferreteria.db"
+    def database(self): return resolve_database_path(self.root, EDITION.edition)
     @property
     def branding(self): return self.data_dir / "branding"
     @property

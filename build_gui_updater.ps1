@@ -1,10 +1,11 @@
-param()
+param([ValidateSet("FERRETERIA", "GENERAL")][string]$Edition = "FERRETERIA")
 
 $ErrorActionPreference="Stop"
 $Root=[System.IO.Path]::GetFullPath($PSScriptRoot)
 $Python=Join-Path $Root ".venv\Scripts\python.exe"
 $Stage=Join-Path $Root "build\gui_updater_1.1.4"
-$Package=Join-Path $Root "dist\PuntoDeVenta_Actualizacion_1.1.4"
+$PackageSuffix=if ($Edition -eq "GENERAL") { "_GENERAL" } else { "" }
+$Package=Join-Path $Root ("dist\PuntoDeVenta_Actualizacion_1.1.4" + $PackageSuffix)
 
 function Assert-SafeChild([string]$Path,[string]$Parent) {
     $child=[System.IO.Path]::GetFullPath($Path)
@@ -18,10 +19,18 @@ if (Test-Path -LiteralPath $Stage) { Remove-Item -LiteralPath $Stage -Recurse -F
 if (Test-Path -LiteralPath $Package) { Remove-Item -LiteralPath $Package -Recurse -Force }
 New-Item -ItemType Directory -Force -Path $Stage,$Package,(Join-Path $Package "payload") | Out-Null
 
-& $Python -m PyInstaller --clean --noconfirm --distpath (Join-Path $Stage "updater_dist") --workpath (Join-Path $Stage "updater_work") (Join-Path $Root "ActualizarPuntoDeVenta.spec")
-if ($LASTEXITCODE -ne 0) { throw "Fallo el build del actualizador" }
-& $Python -m PyInstaller --clean --noconfirm --distpath (Join-Path $Stage "pos_dist") --workpath (Join-Path $Stage "pos_work") (Join-Path $Root "PuntoDeVenta.spec")
-if ($LASTEXITCODE -ne 0) { throw "Fallo el build del POS" }
+$PreviousEdition=$env:PUNTO_VENTA_EDITION
+$env:PUNTO_VENTA_EDITION=$Edition
+try {
+    & $Python -m PyInstaller --clean --noconfirm --distpath (Join-Path $Stage "updater_dist") --workpath (Join-Path $Stage "updater_work") (Join-Path $Root "ActualizarPuntoDeVenta.spec")
+    if ($LASTEXITCODE -ne 0) { throw "Fallo el build del actualizador" }
+    & $Python -m PyInstaller --clean --noconfirm --distpath (Join-Path $Stage "pos_dist") --workpath (Join-Path $Stage "pos_work") (Join-Path $Root "PuntoDeVenta.spec")
+    if ($LASTEXITCODE -ne 0) { throw "Fallo el build del POS" }
+}
+finally {
+    if ($null -eq $PreviousEdition) { Remove-Item Env:PUNTO_VENTA_EDITION -ErrorAction SilentlyContinue }
+    else { $env:PUNTO_VENTA_EDITION=$PreviousEdition }
+}
 
 $UpdaterBuild=Join-Path $Stage "updater_dist\ActualizarPuntoDeVenta"
 $PosBuild=Join-Path $Stage "pos_dist\PuntoDeVenta"
@@ -29,7 +38,9 @@ Copy-Item -LiteralPath (Join-Path $UpdaterBuild "ActualizarPuntoDeVenta.exe") -D
 Copy-Item -LiteralPath (Join-Path $UpdaterBuild "_updater_internal") -Destination $Package -Recurse
 Copy-Item -LiteralPath (Join-Path $PosBuild "PuntoDeVenta.exe") -Destination (Join-Path $Package "payload")
 Copy-Item -LiteralPath (Join-Path $PosBuild "_internal") -Destination (Join-Path $Package "payload") -Recurse
-Copy-Item -LiteralPath (Join-Path $Root "version.json") -Destination $Package
+$VersionData=Get-Content -LiteralPath (Join-Path $Root "version.json") -Raw | ConvertFrom-Json
+$VersionData.edition=$Edition
+$VersionData | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $Package "version.json") -Encoding utf8
 Copy-Item -LiteralPath (Join-Path $Root "ACTUALIZAR_PUNTO_DE_VENTA.txt") -Destination $Package
 
 $forbidden=Get-ChildItem -LiteralPath $Package -Recurse -File | Where-Object { $_.Name -eq "ferreteria.db" -or $_.Extension -eq ".db" }

@@ -40,8 +40,11 @@ class UpdaterWindow(QWidget):
         self.current=self.selector.itemData(index) if index>=0 else None;self._show_current()
     def _show_current(self):
         item=self.current;self.location.setText(str(item.path) if item else "—");self.installed.setText(item.version if item else "—")
-        self.database.setText("✓ Encontrada y válida" if item and item.database.valid else (item.database.message if item else "No seleccionada"));self.database.setStyleSheet("color:#217a3c" if item and item.database.valid else "color:#a83232")
-        self.update.setEnabled(bool(item and item.database.valid));self.status.setText("Listo para actualizar." if item and item.database.valid else "Seleccione una instalación válida.")
+        compatible=bool(item and item.edition==self.package.edition);valid=bool(item and item.database.valid and compatible)
+        database_text=("✓ Encontrada y válida" if item and item.database.valid else (item.database.message if item else "No seleccionada"))
+        if item and not compatible:database_text=f"Edición incompatible: instalada {item.edition.value}, paquete {self.package.edition.value}"
+        self.database.setText(database_text);self.database.setStyleSheet("color:#217a3c" if valid else "color:#a83232")
+        self.update.setEnabled(valid);self.status.setText("Listo para actualizar." if valid else "Seleccione una instalación válida y de la misma edición.")
     def _browse(self):
         path=QFileDialog.getExistingDirectory(self,"Seleccione la carpeta PuntoDeVenta")
         if not path:return

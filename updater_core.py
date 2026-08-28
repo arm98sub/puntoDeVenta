@@ -13,6 +13,7 @@ from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
 from typing import Callable, Iterable
+from edition import Edition, parse_edition, get_edition_config
 
 
 EXPECTED_TABLES={"productos","movimientos_inventario","ventas","detalle_venta","schema_migrations"}
@@ -34,6 +35,7 @@ class Installation:
     version:str
     database:DatabaseValidation
     modified_at:str
+    edition:Edition=Edition.FERRETERIA
 
 
 @dataclass(frozen=True)
@@ -44,6 +46,7 @@ class Package:
     required_schema_min:int
     target_schema:int
     migration_required:bool
+    edition:Edition=Edition.FERRETERIA
 
     @property
     def schema_version(self):return self.target_schema
@@ -74,13 +77,14 @@ def load_package(root:Path)->Package:
     data=json.loads(metadata.read_text(encoding="utf-8"));version=str(data.get("version") or "").strip()
     if not version:raise ValueError("La versión del paquete está vacía")
     if not (payload/"PuntoDeVenta.exe").is_file() or not (payload/"_internal").is_dir():raise ValueError("El paquete de aplicación está incompleto")
-    if any(payload.rglob("ferreteria.db")):raise ValueError("El paquete contiene una base de datos prohibida")
+    if any(path.is_file() and path.suffix.lower()==".db" for path in payload.rglob("*")):raise ValueError("El paquete contiene una base de datos prohibida")
     if any((payload/name).exists() for name in PERSISTENT_NAMES):raise ValueError("El payload contiene carpetas de datos de usuario")
     target=int(data.get("target_schema",data.get("schema_version",CURRENT_SCHEMA)))
     required=int(data.get("required_schema_min",target))
     migration=bool(data.get("migration_required",data.get("requires_migration",False)))
     if required>target:raise ValueError("Los metadatos de esquema son inválidos")
-    return Package(root,payload,version,required,target,migration)
+    edition=parse_edition(data.get("edition"))
+    return Package(root,payload,version,required,target,migration,edition)
 
 
 def default_candidate_paths(environ=None)->list[Path]:
@@ -98,7 +102,7 @@ def default_candidate_paths(environ=None)->list[Path]:
 def validate_database(path:Path)->DatabaseValidation:
     path=Path(path)
     try:
-        if not path.is_file():return DatabaseValidation(path,False,None,"No se encontró data\\ferreteria.db")
+        if not path.is_file():return DatabaseValidation(path,False,None,f"No se encontró {path}")
         with path.open("rb") as source:
             if source.read(16)!=b"SQLite format 3\x00":return DatabaseValidation(path,False,None,"La cabecera no corresponde a SQLite")
         connection=sqlite3.connect(f"file:{path.resolve()}?mode=ro",uri=True,timeout=10)
@@ -121,12 +125,18 @@ def read_installed_version(path:Path)->str:
     except Exception:return "Desconocida"
 
 
+def read_installed_edition(path:Path)->Edition:
+    metadata=Path(path)/"version.json"
+    try:return parse_edition(json.loads(metadata.read_text(encoding="utf-8")).get("edition"))
+    except (OSError,json.JSONDecodeError):return Edition.FERRETERIA
+
+
 def validate_installation(path:Path)->Installation|None:
     path=Path(path).expanduser().resolve()
     if not (path/"PuntoDeVenta.exe").is_file():return None
-    database=validate_database(path/"data"/"ferreteria.db")
+    edition=read_installed_edition(path);database=validate_database(path/get_edition_config(edition).database_relative_path)
     modified=datetime.fromtimestamp((path/"PuntoDeVenta.exe").stat().st_mtime).strftime("%Y-%m-%d %H:%M")
-    return Installation(path,read_installed_version(path),database,modified)
+    return Installation(path,read_installed_version(path),database,modified,edition)
 
 
 def detect_installations(paths:Iterable[Path]|None=None,environ=None)->list[Installation]:
@@ -231,7 +241,8 @@ def restore_database(database:Path,backup:Path):
 def apply_update(package:Package,installation:Installation,*,running_check:Callable[[],bool]=pos_is_running,
                  progress:Callable[[str,int],None]|None=None,failure_hook:Callable[[str],None]|None=None)->UpdateResult:
     notify=progress or (lambda _message,_percent:None);hook=failure_hook or (lambda _stage:None)
-    target=installation.path;database=target/"data"/"ferreteria.db";logger,log_path=configure_update_log(target)
+    if package.edition!=installation.edition:raise RuntimeError(f"El paquete es edición {package.edition.value} y la instalación es {installation.edition.value}")
+    target=installation.path;database=target/get_edition_config(installation.edition).database_relative_path;logger,log_path=configure_update_log(target)
     if running_check():raise RuntimeError("PuntoDeVenta está abierto. Ciérrelo e intente nuevamente.")
     current=validate_database(database)
     if not current.valid:raise RuntimeError("No se puede actualizar porque la base de datos no pasó la validación.")
