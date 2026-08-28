@@ -17,7 +17,7 @@ class ProductRepository:
     SORTS = {
         "codigo_truper": "codigo_truper", "codigo_barras": "codigo_barras", "clave": "clave",
         "descripcion": "COALESCE(NULLIF(trim(descripcion),''),NULLIF(trim(clave),''),NULLIF(trim(codigo_truper),''),'')",
-        "marca": "marca", "categoria": "categoria", "tipo_venta": "tipo_venta", "unidad_granel":"unidad_granel", "precio_proveedor":"precio_proveedor", "porcentaje_ganancia":"CAST(porcentaje_ganancia AS REAL)", "precio_venta": "precio_venta", "existencia": "CASE WHEN tipo_venta='GRANEL' THEN existencia_granel_mg ELSE existencia END", "controla_inventario":"controla_inventario", "activo": "activo",
+        "marca": "marca", "categoria": "categoria", "categoria_id":"COALESCE((SELECT nombre FROM categorias WHERE id=productos.categoria_id),'')", "tipo_venta": "tipo_venta", "unidad_granel":"unidad_granel", "precio_proveedor":"precio_proveedor", "porcentaje_ganancia":"CAST(porcentaje_ganancia AS REAL)", "precio_venta": "precio_venta", "existencia": "CASE WHEN tipo_venta='GRANEL' THEN existencia_granel_mg ELSE existencia END", "stock_minimo":"CASE WHEN tipo_venta='GRANEL' THEN stock_minimo_granel_mg ELSE stock_minimo END", "controla_inventario":"controla_inventario", "activo": "activo",
     }
     @staticmethod
     def get(connection, product_id: int) -> Product | None:
@@ -124,7 +124,7 @@ class ProductRepository:
 
     @staticmethod
     def update_fields(connection, product_id, values):
-        allowed={"descripcion","precio_catalogo_publico","precio_proveedor","porcentaje_ganancia","precio_venta","tipo_venta","unidad_granel","controla_inventario","activo","categoria","stock_minimo","stock_minimo_granel_mg","precio_variable"}
+        allowed={"descripcion","precio_catalogo_publico","precio_proveedor","porcentaje_ganancia","precio_venta","tipo_venta","unidad_granel","controla_inventario","activo","categoria","categoria_id","proveedor_principal_id","stock_minimo","stock_minimo_granel_mg","precio_variable"}
         if not values or not set(values)<=allowed:raise ValueError("Campos de producto no permitidos")
         assignments=",".join(f"{field}=?" for field in values)
         cursor=connection.execute(f"UPDATE productos SET {assignments},updated_at=strftime('%Y-%m-%dT%H:%M:%fZ','now') WHERE id=?",(*values.values(),product_id))
@@ -133,15 +133,15 @@ class ProductRepository:
 
     @staticmethod
     def insert_external(connection, values: dict) -> Product:
-        values={"tipo_venta":"UNIDAD","unidad_granel":None,"existencia_granel_mg":0,"stock_minimo_granel_mg":0,"precio_proveedor":None,"porcentaje_ganancia":None,"controla_inventario":1,"precio_variable":0,**values}
+        values={"tipo_venta":"UNIDAD","unidad_granel":None,"existencia_granel_mg":0,"stock_minimo_granel_mg":0,"precio_proveedor":None,"porcentaje_ganancia":None,"controla_inventario":1,"precio_variable":0,"categoria_id":None,"proveedor_principal_id":None,**values}
         cursor = connection.execute(
             """INSERT INTO productos
                (codigo_barras, clave, descripcion, marca, categoria, precio_venta,
                 existencia, stock_minimo, es_truper, datos_completos, requiere_revision, tipo_venta,
-                existencia_granel_mg,stock_minimo_granel_mg,precio_proveedor,porcentaje_ganancia,controla_inventario,unidad_granel,precio_variable)
+                existencia_granel_mg,stock_minimo_granel_mg,precio_proveedor,porcentaje_ganancia,controla_inventario,unidad_granel,precio_variable,categoria_id,proveedor_principal_id)
                VALUES (:codigo_barras,:clave,:descripcion,:marca,:categoria,:precio_venta,
                        :existencia,:stock_minimo,0,1,0,:tipo_venta,:existencia_granel_mg,:stock_minimo_granel_mg,
-                       :precio_proveedor,:porcentaje_ganancia,:controla_inventario,:unidad_granel,:precio_variable)""",
+                       :precio_proveedor,:porcentaje_ganancia,:controla_inventario,:unidad_granel,:precio_variable,:categoria_id,:proveedor_principal_id)""",
             values,
         )
         return ProductRepository.get(connection, cursor.lastrowid)

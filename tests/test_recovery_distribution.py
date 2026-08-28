@@ -46,7 +46,7 @@ def test_crear_y_validar_backup_completo(db,tmp_path):
         assert c.execute("SELECT count(*) FROM ventas").fetchone()[0]==1
         assert c.execute("SELECT sum(existencia) FROM productos").fetchone()[0]==4
         assert c.execute("SELECT nombre_negocio FROM configuracion_negocio").fetchone()[0]=="Negocio respaldado"
-    assert validation.schema_version==8 and path.parent.name=="manual"
+    assert validation.schema_version==9 and path.parent.name=="manual"
 
 
 def test_restaurar_recupera_datos_y_crea_pre_restore(db,tmp_path):

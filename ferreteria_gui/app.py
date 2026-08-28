@@ -6,6 +6,8 @@ from PySide6.QtWidgets import QApplication, QMessageBox,QPushButton
 
 from ferreteria_core import Database
 from ferreteria_core.services import BackupService
+from ferreteria_core.services import seed_general_categories
+from edition import EDITION,Edition
 from .config import APP_NAME, BACKUP_ROOT, DATABASE_PATH
 from .logging_setup import configure_logging
 from .main_window import MainWindow
@@ -18,7 +20,9 @@ def run(db_path=DATABASE_PATH):
     try:
         database=Database(db_path)
         if database.needs_migration():BackupService(database,BACKUP_ROOT).crear_pre_migracion()
-        database.migrate(); app._keyboard_filter=KeyboardActivationFilter(app);app.installEventFilter(app._keyboard_filter);window=MainWindow(database,BACKUP_ROOT); window.show()
+        database.migrate()
+        if EDITION.edition is Edition.GENERAL:seed_general_categories(database)
+        app._keyboard_filter=KeyboardActivationFilter(app);app.installEventFilter(app._keyboard_filter);window=MainWindow(database,BACKUP_ROOT); window.show()
         if os.environ.get("PUNTO_VENTA_SMOKE_TEST")=="1":
             app.setQuitOnLastWindowClosed(False);QTimer.singleShot(800,lambda:_smoke_close(window,app,logger))
         return app.exec()
@@ -43,7 +47,8 @@ def _smoke_close(window,app,logger):
         if not window.business_name.text().strip():raise RuntimeError("El nombre del negocio está vacío")
         product_headers=[window.products.table.horizontalHeaderItem(i).text() for i in range(window.products.table.columnCount())]
         inventory_headers=[window.inventory.table.horizontalHeaderItem(i).text() for i in range(window.inventory.table.columnCount())]
-        if __version__!="1.1.4" or "Precio proveedor" not in product_headers or "Ganancia %" not in product_headers:raise RuntimeError("La GUI no corresponde a v1.1.4")
+        expected_headers={"Precio proveedor","Ganancia %"} if EDITION.edition is Edition.FERRETERIA else {"Categoría","Costo","Stock mínimo"}
+        if __version__!="1.1.4" or not expected_headers<=set(product_headers):raise RuntimeError("La GUI no corresponde a la edición/version esperada")
         if not window.history.summary_title.text() or window.pos.set_quantity_button.text().find("F10")<0:raise RuntimeError("Faltan funciones esenciales del POS")
         if "Precio venta" not in inventory_headers:raise RuntimeError("Existencias no muestra precio de venta")
         window.nav.setCurrentRow(0);window.pos.focus_scanner();app.processEvents()

@@ -1,3 +1,35 @@
+MIGRATION_9 = """
+CREATE TABLE IF NOT EXISTS categorias (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    nombre TEXT NOT NULL,
+    nombre_normalizado TEXT NOT NULL UNIQUE,
+    activo INTEGER NOT NULL DEFAULT 1 CHECK(activo IN (0,1)),
+    created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
+    updated_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
+);
+CREATE TABLE IF NOT EXISTS proveedores (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    nombre TEXT NOT NULL,
+    nombre_normalizado TEXT NOT NULL UNIQUE,
+    telefono TEXT,
+    contacto TEXT,
+    notas TEXT,
+    activo INTEGER NOT NULL DEFAULT 1 CHECK(activo IN (0,1)),
+    created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
+    updated_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
+);
+ALTER TABLE productos ADD COLUMN categoria_id INTEGER REFERENCES categorias(id);
+ALTER TABLE productos ADD COLUMN proveedor_principal_id INTEGER REFERENCES proveedores(id);
+INSERT OR IGNORE INTO categorias(nombre,nombre_normalizado)
+SELECT trim(categoria),NORMALIZE_TEXT(trim(categoria)) FROM productos
+WHERE categoria IS NOT NULL AND trim(categoria)<>'' GROUP BY NORMALIZE_TEXT(trim(categoria));
+UPDATE productos SET categoria_id=(SELECT id FROM categorias WHERE nombre_normalizado=NORMALIZE_TEXT(trim(productos.categoria)))
+WHERE categoria IS NOT NULL AND trim(categoria)<>'';
+CREATE INDEX IF NOT EXISTS ix_productos_categoria_id ON productos(categoria_id);
+CREATE INDEX IF NOT EXISTS ix_productos_proveedor_principal_id ON productos(proveedor_principal_id);
+"""
+
+
 MIGRATIONS = [
     (
         1,
@@ -164,4 +196,5 @@ MIGRATIONS = [
             CHECK(precio_variable IN (0,1));
         """,
     ),
+    (9, MIGRATION_9),
 ]

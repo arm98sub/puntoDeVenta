@@ -27,7 +27,7 @@ def make(db,index=1,*,kind="UNIDAD",control=True,stock=10,cost=None,margin=None,
 def test_migracion7_defaults_compatibles(db):
     product=make(db)
     assert product.controla_inventario and product.precio_proveedor is None and product.porcentaje_ganancia is None
-    with db.connect() as connection:assert connection.execute("SELECT max(version) FROM schema_migrations").fetchone()[0]==8
+    with db.connect() as connection:assert connection.execute("SELECT max(version) FROM schema_migrations").fetchone()[0]==9
 
 
 def test_costo_80_margen_25_precio_100():assert precio_venta_sugerido(8000,"25")==10000

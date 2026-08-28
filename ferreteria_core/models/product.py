@@ -26,11 +26,18 @@ class Product:
     controla_inventario: bool
     unidad_granel: str | None
     precio_variable: bool
+    categoria_id: int | None = None
+    proveedor_principal_id: int | None = None
 
     @classmethod
     def from_row(cls, row):
         fields = cls.__dataclass_fields__
-        values = {name: row[name] for name in fields}
+        keys=set(row.keys());values = {name: row[name] if name in keys else fields[name].default for name in fields}
         for name in ("es_truper", "datos_completos", "requiere_revision", "activo", "controla_inventario", "precio_variable"):
             values[name] = bool(values[name])
         return cls(**values)
+
+    @property
+    def stock_bajo(self):
+        if not self.controla_inventario:return False
+        return self.existencia_granel_mg<self.stock_minimo_granel_mg if self.tipo_venta=="GRANEL" else self.existencia<self.stock_minimo

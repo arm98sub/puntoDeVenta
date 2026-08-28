@@ -17,7 +17,7 @@ def _installation(root: Path, edition: Edition):
 
 def _package(root: Path, edition: Edition):
     payload=root/"payload";payload.mkdir(parents=True);(payload/"PuntoDeVenta.exe").write_bytes(b"new");(payload/"_internal").mkdir()
-    (root/"version.json").write_text(json.dumps({"version":"1.1.4","edition":edition.value,"required_schema_min":8,"target_schema":8}),encoding="utf-8")
+    (root/"version.json").write_text(json.dumps({"version":"1.1.4","edition":edition.value,"required_schema_min":9,"target_schema":9}),encoding="utf-8")
     return load_package(root)
 
 

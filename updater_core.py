@@ -18,7 +18,7 @@ from edition import Edition, parse_edition, get_edition_config
 
 EXPECTED_TABLES={"productos","movimientos_inventario","ventas","detalle_venta","schema_migrations"}
 PERSISTENT_NAMES={"data","tickets","backups","logs"}
-CURRENT_SCHEMA=8
+CURRENT_SCHEMA=9
 
 
 @dataclass(frozen=True)
@@ -208,7 +208,7 @@ def database_counts(database:Path)->dict[str,int]:
 
 def migrate_database(database:Path,current:int,target:int,hook=lambda _stage:None):
     if current==target:return
-    if current not in {6,7} or target not in {7,8} or current>=target:raise RuntimeError(f"No existe una migración segura de esquema {current} a {target}")
+    if current not in {6,7,8} or target not in {7,8,9} or current>=target:raise RuntimeError(f"No existe una migración segura de esquema {current} a {target}")
     connection=sqlite3.connect(database,timeout=30,isolation_level=None)
     try:
         connection.execute("PRAGMA foreign_keys=ON");connection.execute("BEGIN IMMEDIATE")
@@ -218,9 +218,16 @@ def migrate_database(database:Path,current:int,target:int,hook=lambda _stage:Non
             connection.execute("ALTER TABLE detalle_venta ADD COLUMN unidad_granel_snapshot TEXT CHECK(unidad_granel_snapshot IS NULL OR unidad_granel_snapshot IN ('PESO','VOLUMEN'))")
             connection.execute("UPDATE detalle_venta SET unidad_granel_snapshot='PESO' WHERE tipo_venta_snapshot='GRANEL'")
             connection.execute("INSERT INTO schema_migrations(version) VALUES(7)");current=7
-        if current==7 and target==8:
+        if current==7 and target>=8:
             connection.execute("ALTER TABLE productos ADD COLUMN precio_variable INTEGER NOT NULL DEFAULT 0 CHECK(precio_variable IN (0,1))")
-            connection.execute("INSERT INTO schema_migrations(version) VALUES(8)")
+            connection.execute("INSERT INTO schema_migrations(version) VALUES(8)");current=8
+        if current==8 and target==9:
+            from ferreteria_core.database.migrations import MIGRATION_9
+            from ferreteria_core.database.connection import _normalize_text
+            connection.create_function("NORMALIZE_TEXT",1,_normalize_text,deterministic=True)
+            for statement in MIGRATION_9.split(";"):
+                if statement.strip():connection.execute(statement)
+            connection.execute("INSERT INTO schema_migrations(version) VALUES(9)")
         hook("migration")
         connection.commit()
     except Exception:
@@ -277,6 +284,7 @@ def apply_update(package:Package,installation:Installation,*,running_check:Calla
         with sqlite3.connect(database) as connection:
             product_columns={row[1] for row in connection.execute("PRAGMA table_info(productos)")};detail_columns={row[1] for row in connection.execute("PRAGMA table_info(detalle_venta)")}
             if "unidad_granel" not in product_columns or "unidad_granel_snapshot" not in detail_columns:raise RuntimeError("Faltan columnas de la migración 7")
+            if package.target_schema>=9 and not {"categoria_id","proveedor_principal_id"}<=product_columns:raise RuntimeError("Faltan columnas de la migración 9")
         final_hash=sha256(database);logger.info("Validación correcta; archivos=%s; hash_db_antes=%s; hash_db_despues=%s",",".join(installed),old_hash,final_hash);logger.info("Conteos después: %s",after_counts)
         shutil.rmtree(previous,ignore_errors=True);shutil.rmtree(stage,ignore_errors=True);notify("Completado.",100)
         return UpdateResult(target,installation.version,package.version,backup,final_hash,log_path)

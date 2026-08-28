@@ -59,7 +59,7 @@ def _normalize_text(value):
     if value is None:
         return ""
     normalized = unicodedata.normalize("NFKD", str(value).casefold())
-    return "".join(char for char in normalized if not unicodedata.combining(char))
+    return " ".join("".join(char for char in normalized if not unicodedata.combining(char)).split())
 
 
 class _ClosingConnection(sqlite3.Connection):

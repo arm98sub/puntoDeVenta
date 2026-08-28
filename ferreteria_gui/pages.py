@@ -5,7 +5,7 @@ from PySide6.QtGui import QAction
 from PySide6.QtWidgets import (QAbstractItemView,QAbstractSpinBox,QApplication,QComboBox,QDateEdit,QDialog,QGridLayout,QHeaderView,QHBoxLayout,QInputDialog,QLabel,QLineEdit,
                                QMenu,QMessageBox, QPushButton, QStyle, QStyledItemDelegate, QTableWidget, QTableWidgetItem,QToolButton, QVBoxLayout, QWidget)
 
-from ferreteria_core.services import BulkQuantityRequired,VariablePriceRequired, Cart,DailySummaryService, InsufficientStockError, InventoryService, ProductEditSession, ProductQueryService, ProductService, SalesService, TicketService
+from ferreteria_core.services import BulkQuantityRequired,VariablePriceRequired, Cart,CategoryService,DailySummaryService, InsufficientStockError, InventoryService, ProductEditSession, ProductQueryService, ProductService, SalesService, TicketService
 from ferreteria_core.quantity import formato_granel
 from .config import PAGE_SIZE, TICKET_ROOT, TRUPER_ENABLED
 from .dialogs import (BulkSaleDialog,BulkStockDialog,BulkTypeDialog,IdentityEditDialog,InventoryMovementsDialog,ProductModifyDialog,DescriptionEditDialog, ExternalProductDialog, GenericImportDialog, LinkProductDialog, PaymentDialog, PriceEditDialog,
@@ -395,7 +395,12 @@ class LegacyProductsPage(PaginatedProductsPage):
 class ProductsPage(PaginatedProductsPage):
     EDITABLE={3:"descripcion",5:"precio_proveedor",6:"porcentaje_ganancia",7:"precio_venta"}
     def __init__(self,database,parent=None):
-        super().__init__(database,"PRODUCTOS Y PRECIOS",["Código","Barcode","Clave","Descripción","Tipo de venta","Precio proveedor","Ganancia %","Precio venta","Control inventario","Activo"],["codigo_truper","codigo_barras","clave","descripcion","tipo_venta","precio_proveedor","porcentaje_ganancia","precio_venta","controla_inventario","activo"],parent)
+        if TRUPER_ENABLED:
+            headers=["Código","Barcode","Clave","Descripción","Tipo de venta","Precio proveedor","Ganancia %","Precio venta","Control inventario","Activo"];sorts=["codigo_truper","codigo_barras","clave","descripcion","tipo_venta","precio_proveedor","porcentaje_ganancia","precio_venta","controla_inventario","activo"]
+        else:
+            headers=["Código","Barcode","Descripción","Categoría","Costo","Precio venta","Existencia","Stock mínimo","Activo"];sorts=["clave","codigo_barras","descripcion","categoria_id","precio_proveedor","precio_venta","existencia","stock_minimo","activo"]
+        super().__init__(database,"PRODUCTOS Y PRECIOS",headers,sorts,parent)
+        self.EDITABLE={3:"descripcion",5:"precio_proveedor",6:"porcentaje_ganancia",7:"precio_venta"} if TRUPER_ENABLED else {2:"descripcion",4:"precio_proveedor",5:"precio_venta"}
         self._filling=False;self.table.setSelectionMode(QAbstractItemView.SelectionMode.ExtendedSelection);self.table.setEditTriggers(QAbstractItemView.EditTrigger.DoubleClicked|QAbstractItemView.EditTrigger.EditKeyPressed);self.table.setColumnWidth(3,330);self.table.verticalHeader().setDefaultSectionSize(38);self.table.setItemDelegate(ReadableEditDelegate(self.table));self.selected_label=QLabel("Seleccionados: 0");self.selected_label.setStyleSheet("font-weight:bold");self.layout().insertWidget(3,self.selected_label)
         actions=QHBoxLayout();self.new_button=QPushButton("NUEVO  F1");self.modify_button=QPushButton("MODIFICAR  F3");self.delete_button=QPushButton("ELIMINAR  F6");self.import_button=QPushButton("IMPORTAR");self.more=QToolButton();self.more.setText("MÁS ACCIONES ▼");self.more.setPopupMode(QToolButton.InstantPopup)
         menu=QMenu(self.more);self.barcode_action=menu.addAction("Cambiar / revincular barcode");self.code_action=menu.addAction("Cambiar código Truper") if TRUPER_ENABLED else None;self.stock_action=menu.addAction("Ajustar existencia");self.type_action=menu.addAction("Cambiar tipo de venta");self.active_action=menu.addAction("Activar / desactivar");self.more.setMenu(menu)
@@ -403,6 +408,10 @@ class ProductsPage(PaginatedProductsPage):
         actions.addStretch();self.layout().insertLayout(1,actions);self.register_selection_button(self.modify_button);self.register_selection_button(self.delete_button);self.new_button.clicked.connect(self._new);self.modify_button.clicked.connect(self._modify);self.delete_button.clicked.connect(self._delete_product);self.import_button.clicked.connect(self._import);self.barcode_action.triggered.connect(self._change_barcode);self.stock_action.triggered.connect(self._adjust_stock);self.type_action.triggered.connect(self._change_type);self.active_action.triggered.connect(self._change_active);self.table.itemChanged.connect(self._direct_edit)
         if self.code_action:self.code_action.triggered.connect(self._change_code)
     def row_values(self,p):
+        if not TRUPER_ENABLED:
+            category=CategoryService(self.database).obtener(p.categoria_id) if p.categoria_id else None
+            existence=cantidad_producto(p) if p.controla_inventario else "—";minimum=(formato_granel(p.stock_minimo_granel_mg,p.unidad_granel or "PESO") if p.tipo_venta=="GRANEL" else str(p.stock_minimo)) if p.controla_inventario else "—"
+            return [p.clave or "",p.codigo_barras or "",p.descripcion or "",category.nombre if category else "Sin categoría",moneda(p.precio_proveedor),precio_producto(p),existence,minimum,"Sí" if p.activo else "No"]
         return [p.codigo_truper or "",p.codigo_barras or "",p.clave or "",p.descripcion or "",_tipo_venta_label(p),moneda(p.precio_proveedor),f"{p.porcentaje_ganancia}%" if p.porcentaje_ganancia is not None else "—",precio_producto(p),"Sí" if p.controla_inventario else "No","Sí" if p.activo else "No"]
     def _fill(self,products,preserve_id=None):
         self._filling=True

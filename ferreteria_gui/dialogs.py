@@ -3,7 +3,7 @@ from decimal import Decimal
 from PySide6.QtCore import Qt, QUrl
 from PySide6.QtGui import QDesktopServices
 from PySide6.QtWidgets import (QCheckBox,QComboBox, QDialog, QDialogButtonBox, QFormLayout, QHeaderView, QHBoxLayout,
-                               QButtonGroup, QFileDialog, QLabel, QLineEdit, QMessageBox, QPushButton, QRadioButton, QSpinBox, QTableWidget,
+                               QButtonGroup, QFileDialog, QLabel, QLineEdit, QMessageBox, QPushButton, QRadioButton, QSpinBox, QTableWidget,QInputDialog,
                                QTableWidgetItem, QVBoxLayout,QWidget)
 
 from ferreteria_core.services import GenericProductImporter, InitialInventoryService, InventoryService, ProductQueryService, ProductService
@@ -14,6 +14,7 @@ from ferreteria_core.quantity import (auxiliar_granel,cantidad_desde_mayor,forma
 from .presentation import calcular_pago, cantidad_producto, moneda, nombre_producto, parsear_importe, precio_producto
 from .widgets import show_error
 from .config import TRUPER_ENABLED
+from ferreteria_core.services import CategoryService,SupplierService
 
 
 class PaymentDialog(QDialog):
@@ -160,16 +161,38 @@ class ProductModifyDialog(QDialog):
     def __init__(self,product,service,parent=None):
         super().__init__(parent);self.product=product;self.service=service;self.saved_product=None;self.setWindowTitle("Modificar producto");self.setMinimumWidth(520);form=QFormLayout(self)
         for label,value in (("Código",product.codigo_truper or "—"),("Barcode",product.codigo_barras or "—"),("Clave",product.clave or "—")):form.addRow(label+":",QLabel(value))
-        self.description=QLineEdit(product.descripcion or "");self.kind=QComboBox();self.kind.addItems(["UNIDAD","GRANEL"]);self.kind.setCurrentText(product.tipo_venta);self.bulk_unit=QComboBox();self.bulk_unit.addItem("Peso (kg)","PESO");self.bulk_unit.addItem("Volumen (L)","VOLUMEN");self.bulk_unit.setCurrentIndex(max(0,self.bulk_unit.findData(product.unidad_granel or "PESO")));self.catalog=QLineEdit(_decimal_text(product.precio_catalogo_publico));self.cost=QLineEdit(_decimal_text(product.precio_proveedor));self.margin=QLineEdit(product.porcentaje_ganancia or "");self.sale=QLineEdit(_decimal_text(product.precio_venta));self.variable=QCheckBox("Precio variable en cada venta");self.variable.setChecked(product.precio_variable);self.control=QCheckBox();_style_inventory_control(self.control,product.controla_inventario);self.active=QCheckBox("Producto activo");self.active.setChecked(product.activo)
+        self.description=QLineEdit(product.descripcion or "");self.kind=QComboBox();self.kind.addItems(["UNIDAD","GRANEL"]);self.kind.setCurrentText(product.tipo_venta);self.bulk_unit=QComboBox();self.bulk_unit.addItem("Peso (kg)","PESO");self.bulk_unit.addItem("Volumen (L)","VOLUMEN");self.bulk_unit.setCurrentIndex(max(0,self.bulk_unit.findData(product.unidad_granel or "PESO")));self.catalog=QLineEdit(_decimal_text(product.precio_catalogo_publico));self.cost=QLineEdit(_decimal_text(product.precio_proveedor));self.margin=QLineEdit(product.porcentaje_ganancia or "");self.sale=QLineEdit(_decimal_text(product.precio_venta));self.variable=QCheckBox("Precio variable en cada venta");self.variable.setChecked(product.precio_variable);self.control=QCheckBox();_style_inventory_control(self.control,product.controla_inventario);self.active=QCheckBox("Producto activo");self.active.setChecked(product.activo);self.category=QComboBox();self.supplier=QComboBox();self.minimum=QLineEdit(str(product.stock_minimo) if product.tipo_venta=="UNIDAD" else formato_granel(product.stock_minimo_granel_mg,product.unidad_granel or "PESO").split()[0])
         for label,widget in (("Descripción",self.description),("Se vende",self.kind),("Unidad de granel",self.bulk_unit),("Precio catálogo Truper",self.catalog),("Precio proveedor",self.cost),("Ganancia %",self.margin),("Precio venta / sugerido",self.sale),("",self.variable),("",self.control),("",self.active)):form.addRow(label,widget)
-        self.kind.currentTextChanged.connect(self._refresh_bulk_unit);self.variable.toggled.connect(self._refresh_bulk_unit);self._refresh_bulk_unit();self.cost.textEdited.connect(lambda:_sync_price_fields(self.cost,self.margin,self.sale,"cost"));self.margin.textEdited.connect(lambda:_sync_price_fields(self.cost,self.margin,self.sale,"margin"));self.sale.textEdited.connect(lambda:_sync_price_fields(self.cost,self.margin,self.sale,"sale"));buttons=QDialogButtonBox(QDialogButtonBox.Save|QDialogButtonBox.Cancel);buttons.button(QDialogButtonBox.Save).setText("GUARDAR");buttons.accepted.connect(self._save);buttons.rejected.connect(self.reject);form.addRow(buttons)
+        if not TRUPER_ENABLED:
+            form.setRowVisible(self.catalog,False);form.setRowVisible(self.margin,False);form.addRow("Categoría:",self.category);form.addRow("Proveedor principal:",self.supplier);form.addRow("Stock mínimo:",self.minimum);self._load_general_catalogs()
+        self.kind.currentTextChanged.connect(self._refresh_bulk_unit);self.variable.toggled.connect(self._refresh_bulk_unit);self._refresh_bulk_unit()
+        if self.service.edition_config.auto_recalculate_sale_price_from_cost:
+            self.cost.textEdited.connect(lambda:_sync_price_fields(self.cost,self.margin,self.sale,"cost"));self.margin.textEdited.connect(lambda:_sync_price_fields(self.cost,self.margin,self.sale,"margin"));self.sale.textEdited.connect(lambda:_sync_price_fields(self.cost,self.margin,self.sale,"sale"))
+        buttons=QDialogButtonBox(QDialogButtonBox.Save|QDialogButtonBox.Cancel);buttons.button(QDialogButtonBox.Save).setText("GUARDAR");buttons.accepted.connect(self._save);buttons.rejected.connect(self.reject);form.addRow(buttons)
+    def _load_general_catalogs(self):
+        self.category.addItem("Sin categoría",None)
+        for item in CategoryService(self.service.database).listar_activas():self.category.addItem(item.nombre,item.id)
+        category_index=self.category.findData(self.product.categoria_id)
+        if self.product.categoria_id and category_index<0:
+            item=CategoryService(self.service.database).obtener(self.product.categoria_id);self.category.addItem(item.nombre+" (inactiva)",item.id);category_index=self.category.count()-1
+        self.category.setCurrentIndex(max(0,category_index))
+        self.supplier.addItem("Sin proveedor",None)
+        for item in SupplierService(self.service.database).listar_activos():self.supplier.addItem(item.nombre,item.id)
+        supplier_index=self.supplier.findData(self.product.proveedor_principal_id)
+        if self.product.proveedor_principal_id and supplier_index<0:
+            item=SupplierService(self.service.database).obtener(self.product.proveedor_principal_id);self.supplier.addItem(item.nombre+" (inactivo)",item.id);supplier_index=self.supplier.count()-1
+        self.supplier.setCurrentIndex(max(0,supplier_index))
     def _refresh_bulk_unit(self):self.bulk_unit.setEnabled(self.kind.currentText()=="GRANEL");self.variable.setEnabled(self.kind.currentText()=="UNIDAD")
     def _save(self):
         try:
             new_unit=self.bulk_unit.currentData() if self.kind.currentText()=="GRANEL" else None
             if self.product.tipo_venta=="GRANEL" and self.kind.currentText()=="GRANEL" and (self.product.unidad_granel or "PESO")!=new_unit:
                 if QMessageBox.warning(self,"Cambiar unidad","Este cambio modifica cómo se interpretan el precio y las cantidades futuras.\nLos históricos no cambiarán.\n\n¿Continuar?",QMessageBox.Yes|QMessageBox.No)!=QMessageBox.Yes:return
-            self.saved_product=self.service.modificar_producto(self.product.id,descripcion=self.description.text(),tipo_venta=self.kind.currentText(),unidad_granel=new_unit,precio_catalogo_publico=_optional_decimal(self.catalog.text()),precio_proveedor=_optional_decimal(self.cost.text()),porcentaje_ganancia=self.margin.text().strip() or None,precio_venta=_optional_decimal(self.sale.text()),controla_inventario=self.control.isChecked(),activo=self.active.isChecked(),precio_variable=self.variable.isChecked());self.accept()
+            extra={}
+            if not TRUPER_ENABLED:
+                minimum=_whole_stock(self.minimum.text()) if self.kind.currentText()=="UNIDAD" else 0;minimum_bulk=cantidad_desde_mayor(self.minimum.text() or "0",new_unit,allow_zero=True) if self.kind.currentText()=="GRANEL" else 0
+                extra={"categoria_id":self.category.currentData(),"proveedor_principal_id":self.supplier.currentData(),"stock_minimo":minimum,"stock_minimo_granel_mg":minimum_bulk}
+            self.saved_product=self.service.modificar_producto(self.product.id,descripcion=self.description.text(),tipo_venta=self.kind.currentText(),unidad_granel=new_unit,precio_catalogo_publico=_optional_decimal(self.catalog.text()),precio_proveedor=_optional_decimal(self.cost.text()),porcentaje_ganancia=self.margin.text().strip() or None,precio_venta=_optional_decimal(self.sale.text()),controla_inventario=self.control.isChecked(),activo=self.active.isChecked(),precio_variable=self.variable.isChecked(),**extra);self.accept()
         except Exception as exc:show_error(self,"No se pudo modificar el producto",exc)
 
 
@@ -304,14 +327,41 @@ class QuickProductDialog(QDialog):
         code_row=QHBoxLayout();code_row.addWidget(self.code,1);code_row.addWidget(self.find)
         self.status=QLabel("Escriba el código Truper impreso en el producto.");self.status.setWordWrap(True)
         self.key=QLineEdit();self.description=QLineEdit();self.price=QLineEdit();self.variable=QCheckBox("Precio variable en cada venta");self.control=QCheckBox();_style_inventory_control(self.control,True)
+        self.category=QComboBox();self.supplier=QComboBox();self.cost=QLineEdit();self.minimum=QLineEdit("0")
         self.kind=QComboBox();self.kind.addItems(["UNIDAD","GRANEL"]);self.bulk_unit=QComboBox();self.bulk_unit.addItem("Peso (kg)","PESO");self.bulk_unit.addItem("Volumen (L)","VOLUMEN");self.stock=QLineEdit("0")
         form.addRow("Tipo de alta:",self.mode);form.addRow("Barcode:",self.barcode);form.addRow("Código Truper:",code_row);form.addRow(self.status)
         form.addRow("Clave (opcional):",self.key);form.addRow("Descripción:",self.description);form.addRow("Se vende:",self.kind);form.addRow("Unidad de granel:",self.bulk_unit)
         form.addRow("Precio de venta / sugerido: $",self.price);form.addRow(self.variable);form.addRow(self.control);form.addRow("Existencia actual:",self.stock)
+        if not TRUPER_ENABLED:
+            form.addRow("Categoría:",self.category);form.addRow("Proveedor principal:",self.supplier);form.addRow("Costo unitario: $",self.cost);form.addRow("Stock mínimo:",self.minimum);self._load_catalogs()
         self.buttons=QDialogButtonBox(QDialogButtonBox.Save|QDialogButtonBox.Cancel);self.buttons.button(QDialogButtonBox.Save).setText("GUARDAR Y VINCULAR");self.buttons.accepted.connect(self._save);self.buttons.rejected.connect(self.reject);form.addRow(self.buttons)
         self.mode.currentIndexChanged.connect(self._refresh_mode);self.find.clicked.connect(self._lookup);self.code.returnPressed.connect(self._lookup);self.control.toggled.connect(self.stock.setEnabled);self.kind.currentTextChanged.connect(self._stock_hint);self.bulk_unit.currentIndexChanged.connect(self._stock_hint);self._refresh_mode();self.barcode.setFocus()
         if not TRUPER_ENABLED:
-            for widget in (self.mode,self.code,self.status,self.key):form.setRowVisible(widget,False)
+            for widget in (self.mode,self.code,self.status):form.setRowVisible(widget,False)
+            form.setRowVisible(self.key,True)
+            form.labelForField(self.key).setText("Código interno:")
+            self.category.currentIndexChanged.connect(self._category_selected);self.supplier.currentIndexChanged.connect(self._supplier_selected)
+    def _load_catalogs(self,category_id=None,supplier_id=None):
+        if TRUPER_ENABLED:return
+        self.category.blockSignals(True);self.category.clear();self.category.addItem("Sin categoría",None)
+        for item in CategoryService(self.database).listar_activas():self.category.addItem(item.nombre,item.id)
+        self.category.addItem("+ Nueva categoría...","NEW");self.category.blockSignals(False)
+        self.supplier.blockSignals(True);self.supplier.clear();self.supplier.addItem("Sin proveedor",None)
+        for item in SupplierService(self.database).listar_activos():self.supplier.addItem(item.nombre,item.id)
+        self.supplier.addItem("+ Nuevo proveedor...","NEW");self.supplier.blockSignals(False)
+        if category_id is not None:self.category.setCurrentIndex(self.category.findData(category_id))
+        if supplier_id is not None:self.supplier.setCurrentIndex(self.supplier.findData(supplier_id))
+    def _category_selected(self):
+        if self.category.currentData()!="NEW":return
+        name,ok=QInputDialog.getText(self,"Nueva categoría","Nombre:")
+        try:
+            item=CategoryService(self.database).crear(name) if ok else None;self._load_catalogs(item.id if item else None,self.supplier.currentData())
+        except Exception as exc:self._load_catalogs();show_error(self,"No se creó la categoría",exc)
+    def _supplier_selected(self):
+        if self.supplier.currentData()!="NEW":return
+        dialog=SupplierDialog(self.database,self)
+        if dialog.exec()==QDialog.Accepted:self._load_catalogs(self.category.currentData(),dialog.supplier.id)
+        else:self.supplier.setCurrentIndex(0)
     def _refresh_mode(self):
         truper=self.mode.currentData()=="TRUPER"
         for widget in (self.code,self.find,self.status,self.key):widget.setVisible(truper)
@@ -339,7 +389,9 @@ class QuickProductDialog(QDialog):
             if self.mode.currentData()=="EXTERNAL":
                 kind=self.kind.currentText();unit=self.bulk_unit.currentData() if kind=="GRANEL" else None;bulk=cantidad_desde_mayor(self.stock.text() or "0",unit,allow_zero=True) if kind=="GRANEL" and self.control.isChecked() else 0
                 units=_whole_stock(self.stock.text()) if kind=="UNIDAD" and self.control.isChecked() else 0
-                self.product=self.service.crear_producto_externo(self.barcode.text(),self.description.text(),price,units,tipo_venta=kind,unidad_granel=unit,existencia_granel_mg=bulk,controla_inventario=self.control.isChecked(),permitir_sin_barcode=True,precio_variable=variable)
+                minimum=_whole_stock(self.minimum.text()) if not TRUPER_ENABLED and kind=="UNIDAD" else 0
+                minimum_bulk=cantidad_desde_mayor(self.minimum.text() or "0",unit,allow_zero=True) if not TRUPER_ENABLED and kind=="GRANEL" else 0
+                self.product=self.service.crear_producto_externo(self.barcode.text(),self.description.text(),price,units,clave=self.key.text(),categoria_id=self.category.currentData() if not TRUPER_ENABLED else None,proveedor_principal_id=self.supplier.currentData() if not TRUPER_ENABLED else None,stock_minimo=minimum,tipo_venta=kind,unidad_granel=unit,existencia_granel_mg=bulk,stock_minimo_granel_mg=minimum_bulk,precio_proveedor=self.cost.text() if not TRUPER_ENABLED else None,controla_inventario=self.control.isChecked(),permitir_sin_barcode=True,precio_variable=variable)
             else:
                 if not self.code.text().strip():raise ValueError("El código Truper es obligatorio")
                 if self._found and self._found.codigo_truper==self.code.text().strip():
@@ -353,6 +405,16 @@ class QuickProductDialog(QDialog):
                     self.product=self.service.crear_producto_truper_minimo(self.code.text(),self.barcode.text(),price,_whole_stock(self.stock.text()) if self.control.isChecked() and kind=="UNIDAD" else 0,descripcion=self.description.text(),clave=self.key.text(),controla_inventario=self.control.isChecked(),tipo_venta=kind,unidad_granel=unit,existencia_granel_mg=bulk,precio_variable=variable)
             self.accept()
         except Exception as exc:show_error(self,"No se pudo registrar el producto",exc)
+
+
+class SupplierDialog(QDialog):
+    def __init__(self,database,parent=None):
+        super().__init__(parent);self.database=database;self.supplier=None;self.setWindowTitle("Nuevo proveedor");form=QFormLayout(self);self.name=QLineEdit();self.phone=QLineEdit();self.contact=QLineEdit();self.notes=QLineEdit()
+        for label,widget in (("Nombre:",self.name),("Teléfono:",self.phone),("Contacto:",self.contact),("Notas:",self.notes)):form.addRow(label,widget)
+        buttons=QDialogButtonBox(QDialogButtonBox.Save|QDialogButtonBox.Cancel);buttons.accepted.connect(self._save);buttons.rejected.connect(self.reject);form.addRow(buttons)
+    def _save(self):
+        try:self.supplier=SupplierService(self.database).crear(self.name.text(),self.phone.text(),self.contact.text(),self.notes.text());self.accept()
+        except Exception as exc:show_error(self,"No se creó el proveedor",exc)
 
 
 class ProductSearchDialog(QDialog):

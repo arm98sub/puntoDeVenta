@@ -12,9 +12,11 @@ from .generic_import import GenericProductImporter,ImportSummary
 from .recovery import BackupService,BackupValidation,validar_respaldo
 from .product_edit import PendingChange,ProductEditSession
 from .daily_summary import DailySummary,DailySummaryService,SoldProduct
+from .catalogs import CategoryService,SupplierService,seed_general_categories,GENERAL_CATEGORIES
 
 __all__ = ["importar_catalogo_truper", "InventoryService", "ProductService", "InitialInventoryService",
            "Cart", "CartItem", "BulkQuantityRequired", "VariablePriceRequired", "InsufficientStockError", "SalesService", "ProductPage", "ProductQueryService", "TicketService",
            "BusinessConfigService", "BusinessSettings", "GenericProductImporter", "ImportSummary",
            "BackupService", "BackupValidation", "validar_respaldo", "respaldar_base", "PendingChange", "ProductEditSession",
            "DailySummary", "DailySummaryService", "SoldProduct"]
+__all__ += ["CategoryService","SupplierService","seed_general_categories","GENERAL_CATEGORIES"]

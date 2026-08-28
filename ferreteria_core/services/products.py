@@ -5,6 +5,7 @@ from decimal import Decimal
 from ferreteria_core.money import decimal_a_centavos
 from ferreteria_core.pricing import normalizar_porcentaje,porcentaje_real,precio_venta_sugerido
 from ferreteria_core.repositories import InventoryRepository, ProductRepository
+from edition import EDITION
 
 
 def validar_codigo_barras(value: str) -> str:
@@ -15,14 +16,15 @@ def validar_codigo_barras(value: str) -> str:
 
 
 class ProductService:
-    def __init__(self, database):
+    def __init__(self, database,edition_config=EDITION):
         self.database = database
+        self.edition_config=edition_config
 
     def get(self, product_id):
         with self.database.connect() as connection:
             return ProductRepository.get(connection, product_id)
 
-    def crear_producto_externo(self, codigo_barras: str, descripcion: str, precio_venta: Decimal | None, existencia: int, *, clave=None, marca=None, categoria=None, stock_minimo=0, tipo_venta="UNIDAD", unidad_granel=None, existencia_granel_mg=0, stock_minimo_granel_mg=0,precio_proveedor=None,porcentaje_ganancia=None,controla_inventario=True,permitir_sin_barcode=False,precio_variable=False):
+    def crear_producto_externo(self, codigo_barras: str, descripcion: str, precio_venta: Decimal | None, existencia: int, *, clave=None, marca=None, categoria=None,categoria_id=None,proveedor_principal_id=None, stock_minimo=0, tipo_venta="UNIDAD", unidad_granel=None, existencia_granel_mg=0, stock_minimo_granel_mg=0,precio_proveedor=None,porcentaje_ganancia=None,controla_inventario=True,permitir_sin_barcode=False,precio_variable=False):
         barcode = validar_codigo_barras(codigo_barras) if (codigo_barras or "").strip() else None
         if barcode is None and not permitir_sin_barcode:raise ValueError("El código de barras es obligatorio")
         description = (descripcion or "").strip()
@@ -36,9 +38,11 @@ class ProductService:
         if tipo_venta=="UNIDAD" and existencia_granel_mg:raise ValueError("Un producto UNIDAD no usa existencia a granel")
         if tipo_venta=="GRANEL" and existencia:raise ValueError("Un producto GRANEL no usa existencia por piezas")
         cost=decimal_a_centavos(precio_proveedor);pct=normalizar_porcentaje(porcentaje_ganancia);sale=decimal_a_centavos(precio_venta)
-        if sale is None:sale=precio_venta_sugerido(cost,pct)
+        if sale is None and self.edition_config.auto_recalculate_sale_price_from_cost:sale=precio_venta_sugerido(cost,pct)
+        if sale is None and not precio_variable and not self.edition_config.auto_recalculate_sale_price_from_cost:
+            raise ValueError("El precio de venta es obligatorio para productos de precio fijo en GENERAL")
         values = dict(codigo_barras=barcode, clave=_clean(clave), descripcion=description, marca=_clean(marca),
-                      categoria=_clean(categoria), precio_venta=sale,precio_proveedor=cost,porcentaje_ganancia=porcentaje_real(cost,sale) if cost is not None and sale is not None else pct,controla_inventario=int(bool(controla_inventario)),precio_variable=int(bool(precio_variable)),
+                      categoria=_clean(categoria),categoria_id=categoria_id,proveedor_principal_id=proveedor_principal_id, precio_venta=sale,precio_proveedor=cost,porcentaje_ganancia=porcentaje_real(cost,sale) if cost is not None and sale is not None else pct,controla_inventario=int(bool(controla_inventario)),precio_variable=int(bool(precio_variable)),
                       existencia=0, stock_minimo=stock_minimo,tipo_venta=tipo_venta,
                       unidad_granel=unidad_granel,existencia_granel_mg=0,stock_minimo_granel_mg=stock_minimo_granel_mg)
         try:
@@ -213,8 +217,10 @@ class ProductService:
         with self.database.transaction() as connection:
             product=ProductRepository.get(connection,producto_id)
             if product is None:raise LookupError("El producto no existe")
-            values={"precio_proveedor":cents};suggested=precio_venta_sugerido(cents,product.porcentaje_ganancia)
-            if suggested is not None:values["precio_venta"]=suggested
+            values={"precio_proveedor":cents}
+            if self.edition_config.auto_recalculate_sale_price_from_cost:
+                suggested=precio_venta_sugerido(cents,product.porcentaje_ganancia)
+                if suggested is not None:values["precio_venta"]=suggested
             return ProductRepository.update_fields(connection,producto_id,values)
 
     def actualizar_porcentaje_ganancia(self,producto_id,porcentaje):
@@ -222,24 +228,29 @@ class ProductService:
         with self.database.transaction() as connection:
             product=ProductRepository.get(connection,producto_id)
             if product is None:raise LookupError("El producto no existe")
-            values={"porcentaje_ganancia":pct};suggested=precio_venta_sugerido(product.precio_proveedor,pct)
-            if suggested is not None:values["precio_venta"]=suggested
+            values={"porcentaje_ganancia":pct}
+            if self.edition_config.auto_recalculate_sale_price_from_cost:
+                suggested=precio_venta_sugerido(product.precio_proveedor,pct)
+                if suggested is not None:values["precio_venta"]=suggested
             return ProductRepository.update_fields(connection,producto_id,values)
 
     def actualizar_precio_catalogo(self,producto_id,nuevo_precio):
         cents=decimal_a_centavos(nuevo_precio)
         with self.database.transaction() as connection:return ProductRepository.update_fields(connection,producto_id,{"precio_catalogo_publico":cents})
 
-    def modificar_producto(self,producto_id,*,descripcion,tipo_venta,unidad_granel=None,precio_catalogo_publico=None,precio_proveedor=None,porcentaje_ganancia=None,precio_venta=None,controla_inventario=True,activo=True,precio_variable=False):
+    def modificar_producto(self,producto_id,*,descripcion,tipo_venta,unidad_granel=None,precio_catalogo_publico=None,precio_proveedor=None,porcentaje_ganancia=None,precio_venta=None,controla_inventario=True,activo=True,precio_variable=False,categoria_id=Ellipsis,proveedor_principal_id=Ellipsis,stock_minimo=Ellipsis,stock_minimo_granel_mg=Ellipsis):
         cost=decimal_a_centavos(precio_proveedor);sale=decimal_a_centavos(precio_venta);pct=normalizar_porcentaje(porcentaje_ganancia)
-        if sale is None:sale=precio_venta_sugerido(cost,pct)
-        actual_pct=porcentaje_real(cost,sale) if cost is not None and sale is not None else pct
         kind=_tipo(tipo_venta);bulk_unit=_unidad(kind,unidad_granel)
         _validar_precio_variable(kind,precio_variable)
-        values={"descripcion":_clean(descripcion),"tipo_venta":kind,"unidad_granel":bulk_unit,"precio_catalogo_publico":decimal_a_centavos(precio_catalogo_publico),"precio_proveedor":cost,"porcentaje_ganancia":actual_pct,"precio_venta":sale,"controla_inventario":int(bool(controla_inventario)),"activo":int(bool(activo)),"precio_variable":int(bool(precio_variable))}
         with self.database.transaction() as connection:
             product=ProductRepository.get(connection,producto_id)
             if product is None:raise LookupError("El producto no existe")
+            if sale is None:
+                sale=precio_venta_sugerido(cost,pct) if self.edition_config.auto_recalculate_sale_price_from_cost else product.precio_venta
+            actual_pct=(porcentaje_real(cost,sale) if cost is not None and sale is not None else pct) if self.edition_config.auto_recalculate_sale_price_from_cost else (pct if porcentaje_ganancia is not None else product.porcentaje_ganancia)
+            values={"descripcion":_clean(descripcion),"tipo_venta":kind,"unidad_granel":bulk_unit,"precio_catalogo_publico":decimal_a_centavos(precio_catalogo_publico),"precio_proveedor":cost,"porcentaje_ganancia":actual_pct,"precio_venta":sale,"controla_inventario":int(bool(controla_inventario)),"activo":int(bool(activo)),"precio_variable":int(bool(precio_variable))}
+            for field,value in (("categoria_id",categoria_id),("proveedor_principal_id",proveedor_principal_id),("stock_minimo",stock_minimo),("stock_minimo_granel_mg",stock_minimo_granel_mg)):
+                if value is not Ellipsis:values[field]=value
             if product.tipo_venta=="GRANEL" and kind=="GRANEL" and (product.unidad_granel or "PESO")!=bulk_unit and product.controla_inventario and product.existencia_granel_mg!=0:raise ValueError("No se puede cambiar entre Peso y Volumen porque el producto controla inventario y su existencia no es cero. Ajuste primero la existencia a cero.")
             return ProductRepository.update_fields(connection,producto_id,values)
 
@@ -264,6 +275,9 @@ class ProductService:
                     if value not in {None,"PESO","VOLUMEN"}:raise ValueError("Unidad de granel inválida")
                     values[field]=value
                 elif field in {"activo","controla_inventario","precio_variable"}:values[field]=int(bool(value))
+                elif field in {"categoria_id","proveedor_principal_id"}:
+                    if value is not None and (not isinstance(value,int) or value<=0):raise ValueError(f"{field} inválido")
+                    values[field]=value
                 elif field=="categoria":values[field]=_clean(value)
                 elif field in {"stock_minimo","stock_minimo_granel_mg"}:
                     if not isinstance(value,int) or value<0:raise ValueError(f"{field} debe ser entero no negativo")
