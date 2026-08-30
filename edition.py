@@ -21,11 +21,12 @@ class EditionConfig:
     auto_recalculate_sale_price_from_cost: bool
     purchases_enabled: bool
     version: str
+    author: str | None = None
 
 
 EDITION_CONFIGS = {
     Edition.FERRETERIA: EditionConfig(Edition.FERRETERIA, "Ferretería POS", Path("data/ferreteria.db"), True, True, False, "1.1.4"),
-    Edition.GENERAL: EditionConfig(Edition.GENERAL, "PuntoDeVenta General", Path("data/punto_venta.db"), False, False, True, "0.9.0"),
+    Edition.GENERAL: EditionConfig(Edition.GENERAL, "PuntoDeVenta General", Path("data/punto_venta.db"), False, False, True, "0.9.0", "Alan Ramírez"),
 }
 
 

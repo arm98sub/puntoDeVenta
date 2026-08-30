@@ -18,10 +18,12 @@ from ferreteria_gui.dialogs import PaymentDialog,ProductModifyDialog,QuickProduc
 from ferreteria_gui.dialogs import QuickStockDialog
 from ferreteria_gui.app import KeyboardActivationFilter
 from ferreteria_gui.main_window import MainWindow
+from ferreteria_gui.settings_page import SettingsPage
 from ferreteria_gui.widgets import STYLE
 import ferreteria_gui.config as gui_config
 import ferreteria_gui.dialogs as gui_dialogs
 import ferreteria_gui.pages as gui_pages
+import ferreteria_gui.settings_page as gui_settings
 
 
 @pytest.fixture(scope="session")
@@ -45,22 +47,38 @@ def test_general_oculta_truper_en_alta_y_modificacion(app,db,monkeypatch):
     monkeypatch.setattr(gui_dialogs,"TRUPER_ENABLED",False);monkeypatch.setattr(gui_pages,"TRUPER_ENABLED",False)
     quick=QuickProductDialog(db);quick_labels=_visible_labels(quick)
     assert not any("Truper" in text for text in quick_labels) and "Código interno:" in quick_labels and quick.key.isVisible()
-    assert quick.form.labelForField(quick.bulk_unit).isHidden() and quick.bulk_unit.isHidden()
-    quick.kind.setCurrentText("GRANEL");app.processEvents();assert not quick.form.labelForField(quick.bulk_unit).isHidden() and not quick.bulk_unit.isHidden()
-    quick.kind.setCurrentText("UNIDAD");app.processEvents();assert quick.form.labelForField(quick.bulk_unit).isHidden() and quick.bulk_unit.isHidden()
+    assert quick.form.labelForField(quick.bulk_unit).isHidden() and quick.bulk_unit.isHidden() and quick.variable.isEnabled()
+    assert quick.form.labelForField(quick.price).text()=="Precio de venta: $"
+    quick.kind.setCurrentText("GRANEL");app.processEvents();assert not quick.form.labelForField(quick.bulk_unit).isHidden() and not quick.bulk_unit.isHidden() and not quick.variable.isEnabled()
+    assert "sólo para productos por unidad" in quick.variable.text() and quick.form.labelForField(quick.price).text()=="Precio por kg: $"
+    quick.bulk_unit.setCurrentIndex(quick.bulk_unit.findData("VOLUMEN"));app.processEvents();assert quick.form.labelForField(quick.price).text()=="Precio por L: $"
+    quick.kind.setCurrentText("UNIDAD");app.processEvents();assert quick.form.labelForField(quick.bulk_unit).isHidden() and quick.bulk_unit.isHidden() and quick.variable.isEnabled() and quick.variable.text()=="Precio variable en cada venta"
     quick.barcode.setText("7501206683730");quick.key.setText("INT-001");quick.description.setText("Producto general");quick.price.setText("25");quick._save()
     item=ProductService(db).buscar_exacto("codigo_barras","7501206683730");assert item.clave=="INT-001"
     page=ProductsPage(db);page.reload();assert page.table.item(0,0).text()=="INT-001"
     service=ProductService(db,get_edition_config(Edition.GENERAL));modify=ProductModifyDialog(item,service);modify_labels=_visible_labels(modify)
     assert not any("Truper" in text for text in modify_labels) and "Código interno:" in modify_labels and "Barcode:" in modify_labels
-    assert modify.form.labelForField(modify.bulk_unit).isHidden() and modify.bulk_unit.isHidden()
-    modify.kind.setCurrentText("GRANEL");app.processEvents();assert not modify.form.labelForField(modify.bulk_unit).isHidden() and not modify.bulk_unit.isHidden()
-    modify.kind.setCurrentText("UNIDAD");app.processEvents();assert modify.form.labelForField(modify.bulk_unit).isHidden() and modify.bulk_unit.isHidden()
+    assert modify.form.labelForField(modify.bulk_unit).isHidden() and modify.bulk_unit.isHidden() and modify.variable.isEnabled()
+    assert modify.form.labelForField(modify.sale).text()=="Precio de venta: $"
+    modify.kind.setCurrentText("GRANEL");app.processEvents();assert not modify.form.labelForField(modify.bulk_unit).isHidden() and not modify.bulk_unit.isHidden() and not modify.variable.isEnabled()
+    assert modify.form.labelForField(modify.sale).text()=="Precio por kg: $"
+    modify.bulk_unit.setCurrentIndex(modify.bulk_unit.findData("VOLUMEN"));app.processEvents();assert modify.form.labelForField(modify.sale).text()=="Precio por L: $"
+    modify.kind.setCurrentText("UNIDAD");app.processEvents();assert modify.form.labelForField(modify.bulk_unit).isHidden() and modify.bulk_unit.isHidden() and modify.variable.isEnabled()
 
 
 def test_general_no_muestra_branding_ferreteria(app,db,monkeypatch):
     monkeypatch.setattr(gui_config,"TRUPER_ENABLED",False);monkeypatch.setattr(gui_config,"APP_NAME","PuntoDeVenta General")
     window=MainWindow(db);assert window.business_name.text()=="PuntoDeVenta General" and "FERRETERÍA" not in window.business_name.text().upper()
+
+
+def test_general_acerca_de_muestra_identidad_version_y_autor(app,db,monkeypatch):
+    config=get_edition_config(Edition.GENERAL);monkeypatch.setattr(gui_settings,"EDITION",config);monkeypatch.setattr(gui_settings,"__version__",config.version)
+    page=SettingsPage(db);assert page.about_title.text()=="ACERCA DE"
+    assert page.about_details.text()=="PuntoDeVenta General\nVersión 0.9.0 — Piloto\nDesarrollado por: Alan Ramírez\n© 2026"
+
+
+def test_controles_deshabilitados_conservan_contraste_legible():
+    assert "QLineEdit:disabled" in STYLE and "color: #4b5563" in STYLE and "QCheckBox::indicator:disabled" in STYLE
 
 
 def test_paginas_diferidas_refrescan_en_cada_visita_sin_consultar_al_arrancar(app,db,monkeypatch):
@@ -89,8 +107,10 @@ def test_ferreteria_conserva_controles_truper(app,db,monkeypatch):
     monkeypatch.setattr(gui_dialogs,"TRUPER_ENABLED",True)
     quick=QuickProductDialog(db);labels=_visible_labels(quick)
     assert "Código Truper:" in labels and quick.find.text()=="BUSCAR CÓDIGO TRUPER"
-    assert quick.form.labelForField(quick.bulk_unit).isHidden();quick.kind.setCurrentText("GRANEL");app.processEvents();assert not quick.form.labelForField(quick.bulk_unit).isHidden()
+    assert quick.form.labelForField(quick.price).text()=="Precio de venta / sugerido: $"
+    assert quick.form.labelForField(quick.bulk_unit).isHidden();quick.kind.setCurrentText("GRANEL");app.processEvents();assert not quick.form.labelForField(quick.bulk_unit).isHidden() and quick.variable.text()=="Precio variable en cada venta"
     item=product(db,"7501206683731");modify=ProductModifyDialog(item,ProductService(db));assert any("Precio catálogo Truper" in text for text in _visible_labels(modify))
+    assert modify.form.labelForField(modify.sale).text()=="Precio venta / sugerido"
 
 
 def test_payment_dialog_accepted(app):

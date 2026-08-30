@@ -166,7 +166,7 @@ class ProductModifyDialog(QDialog):
         for label,widget in (("Descripción",self.description),("Se vende",self.kind),("Unidad de granel",self.bulk_unit),("Precio catálogo Truper",self.catalog),("Precio proveedor",self.cost),("Ganancia %",self.margin),("Precio venta / sugerido",self.sale),("",self.variable),("",self.control),("",self.active)):form.addRow(label,widget)
         if not TRUPER_ENABLED:
             form.setRowVisible(self.catalog,False);form.setRowVisible(self.margin,False);form.addRow("Categoría:",self.category);form.addRow("Proveedor principal:",self.supplier);form.addRow("Presentación habitual:",self.purchase_presentation);form.addRow("Contenido habitual:",self.purchase_content);form.addRow("Stock mínimo:",self.minimum);self._load_general_catalogs()
-        self.kind.currentTextChanged.connect(self._refresh_bulk_unit);self.variable.toggled.connect(self._refresh_bulk_unit);self._refresh_bulk_unit()
+        self.kind.currentTextChanged.connect(self._refresh_bulk_unit);self.bulk_unit.currentIndexChanged.connect(self._refresh_bulk_unit);self.variable.toggled.connect(self._refresh_bulk_unit);self.control.toggled.connect(self._refresh_bulk_unit);self.purchase_presentation.currentIndexChanged.connect(self._refresh_bulk_unit);self._refresh_bulk_unit()
         if self.service.edition_config.auto_recalculate_sale_price_from_cost:
             self.cost.textEdited.connect(lambda:_sync_price_fields(self.cost,self.margin,self.sale,"cost"));self.margin.textEdited.connect(lambda:_sync_price_fields(self.cost,self.margin,self.sale,"margin"));self.sale.textEdited.connect(lambda:_sync_price_fields(self.cost,self.margin,self.sale,"sale"))
         buttons=QDialogButtonBox(QDialogButtonBox.Save|QDialogButtonBox.Cancel);buttons.button(QDialogButtonBox.Save).setText("GUARDAR");buttons.accepted.connect(self._save);buttons.rejected.connect(self.reject);form.addRow(buttons)
@@ -189,7 +189,9 @@ class ProductModifyDialog(QDialog):
         if self.product.contenido_por_presentacion:
             self.purchase_content.setText(str(self.product.contenido_por_presentacion) if self.product.tipo_venta=="UNIDAD" else formato_granel(self.product.contenido_por_presentacion,self.product.unidad_granel or "PESO").split()[0])
     def _refresh_bulk_unit(self):
-        bulk=self.kind.currentText()=="GRANEL";self.form.setRowVisible(self.bulk_unit,bulk);self.bulk_unit.setEnabled(bulk);self.variable.setEnabled(not bulk)
+        bulk=self.kind.currentText()=="GRANEL";unit=self.bulk_unit.currentData();self.form.setRowVisible(self.bulk_unit,bulk);self.bulk_unit.setEnabled(bulk);self.variable.setEnabled(not bulk)
+        if not TRUPER_ENABLED:
+            self.variable.setText("Precio variable en cada venta" if not bulk else "Precio variable en cada venta (sólo para productos por unidad)");self.form.labelForField(self.sale).setText(_sale_price_label(bulk,unit));self.minimum.setEnabled(self.control.isChecked());self.form.labelForField(self.minimum).setText(_minimum_stock_label(bulk,unit));self.purchase_content.setEnabled(self.purchase_presentation.currentData() is not None)
     def _save(self):
         try:
             new_unit=self.bulk_unit.currentData() if self.kind.currentText()=="GRANEL" else None
@@ -210,6 +212,8 @@ class ProductModifyDialog(QDialog):
 
 def _decimal_text(cents):return "" if cents is None else f"{centavos_a_decimal(cents):.2f}"
 def _optional_decimal(text):return None if not (text or "").strip() else Decimal(text.strip().replace("$","").replace(",",""))
+def _sale_price_label(bulk,unit):return ("Precio por L: $" if unit=="VOLUMEN" else "Precio por kg: $") if bulk else "Precio de venta: $"
+def _minimum_stock_label(bulk,unit):return ("Stock mínimo (L):" if unit=="VOLUMEN" else "Stock mínimo (kg):") if bulk else "Stock mínimo (piezas):"
 def _style_inventory_control(checkbox,checked=True):
     checkbox.setChecked(bool(checked));checkbox.setMinimumHeight(38);checkbox.setFocusPolicy(Qt.StrongFocus)
     checkbox.setStyleSheet("QCheckBox{font-size:15px;font-weight:700;padding:7px 10px;border:2px solid #6b7280;border-radius:6px;background:#f3f4f6;} QCheckBox::indicator{width:22px;height:22px;} QCheckBox:checked{color:#14532d;border-color:#15803d;background:#dcfce7;} QCheckBox:!checked{color:#7f1d1d;border-color:#b91c1c;background:#fee2e2;} QCheckBox:focus{border:3px solid #1d4ed8;}")
@@ -351,7 +355,7 @@ class QuickProductDialog(QDialog):
         if not TRUPER_ENABLED:
             form.addRow("Categoría:",self.category);form.addRow("Proveedor principal:",self.supplier);form.addRow("Costo unitario: $",self.cost);form.addRow("Presentación habitual:",self.purchase_presentation);form.addRow("Contenido habitual:",self.purchase_content);form.addRow("Stock mínimo:",self.minimum);self._load_catalogs()
         self.buttons=QDialogButtonBox(QDialogButtonBox.Save|QDialogButtonBox.Cancel);self.buttons.button(QDialogButtonBox.Save).setText("GUARDAR Y VINCULAR");self.buttons.accepted.connect(self._save);self.buttons.rejected.connect(self.reject);form.addRow(self.buttons)
-        self.mode.currentIndexChanged.connect(self._refresh_mode);self.find.clicked.connect(self._lookup);self.code.returnPressed.connect(self._lookup);self.control.toggled.connect(self.stock.setEnabled);self.kind.currentTextChanged.connect(self._stock_hint);self.bulk_unit.currentIndexChanged.connect(self._stock_hint);self._refresh_mode();self.barcode.setFocus()
+        self.mode.currentIndexChanged.connect(self._refresh_mode);self.find.clicked.connect(self._lookup);self.code.returnPressed.connect(self._lookup);self.control.toggled.connect(self._stock_hint);self.kind.currentTextChanged.connect(self._stock_hint);self.bulk_unit.currentIndexChanged.connect(self._stock_hint);self.purchase_presentation.currentIndexChanged.connect(self._stock_hint);self._refresh_mode();self.barcode.setFocus()
         if not TRUPER_ENABLED:
             form.labelForField(self.key).setText("Código interno:")
             self.category.currentIndexChanged.connect(self._category_selected);self.supplier.currentIndexChanged.connect(self._supplier_selected)
@@ -386,7 +390,10 @@ class QuickProductDialog(QDialog):
         self.description.setReadOnly(False);self.description.setPlaceholderText("Opcional" if truper else "Obligatoria")
         self.buttons.button(QDialogButtonBox.Save).setText("GUARDAR Y VINCULAR" if truper else "GUARDAR PRODUCTO")
     def _stock_hint(self):
-        bulk=self.kind.currentText()=="GRANEL";self.form.setRowVisible(self.bulk_unit,bulk);self.bulk_unit.setEnabled(bulk);self.variable.setEnabled(not bulk);self.stock.setPlaceholderText(("L" if self.bulk_unit.currentData()=="VOLUMEN" else "kg") if bulk else "piezas")
+        bulk=self.kind.currentText()=="GRANEL";unit=self.bulk_unit.currentData();controlled=self.control.isChecked();self.form.setRowVisible(self.bulk_unit,bulk);self.bulk_unit.setEnabled(bulk);self.variable.setEnabled(not bulk);self.stock.setEnabled(controlled)
+        if not TRUPER_ENABLED:
+            self.variable.setText("Precio variable en cada venta" if not bulk else "Precio variable en cada venta (sólo para productos por unidad)");self.minimum.setEnabled(controlled);self.purchase_content.setEnabled(self.purchase_presentation.currentData() is not None);self.form.labelForField(self.price).setText(_sale_price_label(bulk,unit));self.form.labelForField(self.minimum).setText(_minimum_stock_label(bulk,unit))
+        self.stock.setPlaceholderText(("L" if unit=="VOLUMEN" else "kg") if bulk else "piezas")
     def _lookup(self):
         code=self.code.text().strip()
         if not code:QMessageBox.warning(self,"Código requerido","Escriba el código Truper.");return
