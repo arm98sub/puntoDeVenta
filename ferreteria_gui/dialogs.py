@@ -159,7 +159,7 @@ class ExternalProductDialog(QDialog):
 
 class ProductModifyDialog(QDialog):
     def __init__(self,product,service,parent=None):
-        super().__init__(parent);self.product=product;self.service=service;self.saved_product=None;self.setWindowTitle("Modificar producto");self.setMinimumWidth(520);form=QFormLayout(self)
+        super().__init__(parent);self.product=product;self.service=service;self.saved_product=None;self.setWindowTitle("Modificar producto");self.setMinimumWidth(520);form=QFormLayout(self);self.form=form
         identity=(("Código",product.codigo_truper or "—"),("Barcode",product.codigo_barras or "—"),("Clave",product.clave or "—")) if TRUPER_ENABLED else (("Barcode",product.codigo_barras or "—"),("Código interno",product.clave or "—"))
         for label,value in identity:form.addRow(label+":",QLabel(value))
         self.description=QLineEdit(product.descripcion or "");self.kind=QComboBox();self.kind.addItems(["UNIDAD","GRANEL"]);self.kind.setCurrentText(product.tipo_venta);self.bulk_unit=QComboBox();self.bulk_unit.addItem("Peso (kg)","PESO");self.bulk_unit.addItem("Volumen (L)","VOLUMEN");self.bulk_unit.setCurrentIndex(max(0,self.bulk_unit.findData(product.unidad_granel or "PESO")));self.catalog=QLineEdit(_decimal_text(product.precio_catalogo_publico));self.cost=QLineEdit(_decimal_text(product.precio_proveedor));self.margin=QLineEdit(product.porcentaje_ganancia or "");self.sale=QLineEdit(_decimal_text(product.precio_venta));self.variable=QCheckBox("Precio variable en cada venta");self.variable.setChecked(product.precio_variable);self.control=QCheckBox();_style_inventory_control(self.control,product.controla_inventario);self.active=QCheckBox("Producto activo");self.active.setChecked(product.activo);self.category=QComboBox();self.supplier=QComboBox();self.minimum=QLineEdit(str(product.stock_minimo) if product.tipo_venta=="UNIDAD" else formato_granel(product.stock_minimo_granel_mg,product.unidad_granel or "PESO").split()[0]);self.purchase_presentation=QComboBox();self.purchase_content=QLineEdit("1")
@@ -188,7 +188,8 @@ class ProductModifyDialog(QDialog):
         self.purchase_presentation.setCurrentIndex(max(0,self.purchase_presentation.findData(self.product.presentacion_compra_id)))
         if self.product.contenido_por_presentacion:
             self.purchase_content.setText(str(self.product.contenido_por_presentacion) if self.product.tipo_venta=="UNIDAD" else formato_granel(self.product.contenido_por_presentacion,self.product.unidad_granel or "PESO").split()[0])
-    def _refresh_bulk_unit(self):self.bulk_unit.setEnabled(self.kind.currentText()=="GRANEL");self.variable.setEnabled(self.kind.currentText()=="UNIDAD")
+    def _refresh_bulk_unit(self):
+        bulk=self.kind.currentText()=="GRANEL";self.form.setRowVisible(self.bulk_unit,bulk);self.bulk_unit.setEnabled(bulk);self.variable.setEnabled(not bulk)
     def _save(self):
         try:
             new_unit=self.bulk_unit.currentData() if self.kind.currentText()=="GRANEL" else None
@@ -379,12 +380,13 @@ class QuickProductDialog(QDialog):
         else:self.supplier.setCurrentIndex(0)
     def _refresh_mode(self):
         truper=self.mode.currentData()=="TRUPER"
-        for widget in (self.code,self.find,self.status,self.key):widget.setVisible(truper)
-        self.kind.setEnabled(True);self.bulk_unit.setEnabled(self.kind.currentText()=="GRANEL");self._found=None
+        for widget in (self.code,self.find,self.status):widget.setVisible(truper)
+        self.form.setRowVisible(self.key,truper or not TRUPER_ENABLED)
+        self.kind.setEnabled(True);self._stock_hint();self._found=None
         self.description.setReadOnly(False);self.description.setPlaceholderText("Opcional" if truper else "Obligatoria")
         self.buttons.button(QDialogButtonBox.Save).setText("GUARDAR Y VINCULAR" if truper else "GUARDAR PRODUCTO")
     def _stock_hint(self):
-        bulk=self.kind.currentText()=="GRANEL";self.bulk_unit.setEnabled(bulk);self.variable.setEnabled(not bulk);self.stock.setPlaceholderText(("L" if self.bulk_unit.currentData()=="VOLUMEN" else "kg") if bulk else "piezas")
+        bulk=self.kind.currentText()=="GRANEL";self.form.setRowVisible(self.bulk_unit,bulk);self.bulk_unit.setEnabled(bulk);self.variable.setEnabled(not bulk);self.stock.setPlaceholderText(("L" if self.bulk_unit.currentData()=="VOLUMEN" else "kg") if bulk else "piezas")
     def _lookup(self):
         code=self.code.text().strip()
         if not code:QMessageBox.warning(self,"Código requerido","Escriba el código Truper.");return

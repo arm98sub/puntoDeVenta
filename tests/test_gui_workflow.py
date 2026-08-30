@@ -20,6 +20,7 @@ from ferreteria_gui.main_window import MainWindow
 from ferreteria_gui.widgets import STYLE
 import ferreteria_gui.config as gui_config
 import ferreteria_gui.dialogs as gui_dialogs
+import ferreteria_gui.pages as gui_pages
 
 
 @pytest.fixture(scope="session")
@@ -40,11 +41,20 @@ def _visible_labels(widget):
 
 
 def test_general_oculta_truper_en_alta_y_modificacion(app,db,monkeypatch):
-    monkeypatch.setattr(gui_dialogs,"TRUPER_ENABLED",False)
+    monkeypatch.setattr(gui_dialogs,"TRUPER_ENABLED",False);monkeypatch.setattr(gui_pages,"TRUPER_ENABLED",False)
     quick=QuickProductDialog(db);quick_labels=_visible_labels(quick)
-    assert not any("Truper" in text for text in quick_labels) and "Código interno:" in quick_labels
-    item=product(db,"7501206683730");service=ProductService(db,get_edition_config(Edition.GENERAL));modify=ProductModifyDialog(item,service);modify_labels=_visible_labels(modify)
+    assert not any("Truper" in text for text in quick_labels) and "Código interno:" in quick_labels and quick.key.isVisible()
+    assert quick.form.labelForField(quick.bulk_unit).isHidden() and quick.bulk_unit.isHidden()
+    quick.kind.setCurrentText("GRANEL");app.processEvents();assert not quick.form.labelForField(quick.bulk_unit).isHidden() and not quick.bulk_unit.isHidden()
+    quick.kind.setCurrentText("UNIDAD");app.processEvents();assert quick.form.labelForField(quick.bulk_unit).isHidden() and quick.bulk_unit.isHidden()
+    quick.barcode.setText("7501206683730");quick.key.setText("INT-001");quick.description.setText("Producto general");quick.price.setText("25");quick._save()
+    item=ProductService(db).buscar_exacto("codigo_barras","7501206683730");assert item.clave=="INT-001"
+    page=ProductsPage(db);page.reload();assert page.table.item(0,0).text()=="INT-001"
+    service=ProductService(db,get_edition_config(Edition.GENERAL));modify=ProductModifyDialog(item,service);modify_labels=_visible_labels(modify)
     assert not any("Truper" in text for text in modify_labels) and "Código interno:" in modify_labels and "Barcode:" in modify_labels
+    assert modify.form.labelForField(modify.bulk_unit).isHidden() and modify.bulk_unit.isHidden()
+    modify.kind.setCurrentText("GRANEL");app.processEvents();assert not modify.form.labelForField(modify.bulk_unit).isHidden() and not modify.bulk_unit.isHidden()
+    modify.kind.setCurrentText("UNIDAD");app.processEvents();assert modify.form.labelForField(modify.bulk_unit).isHidden() and modify.bulk_unit.isHidden()
 
 
 def test_general_no_muestra_branding_ferreteria(app,db,monkeypatch):
@@ -56,6 +66,7 @@ def test_ferreteria_conserva_controles_truper(app,db,monkeypatch):
     monkeypatch.setattr(gui_dialogs,"TRUPER_ENABLED",True)
     quick=QuickProductDialog(db);labels=_visible_labels(quick)
     assert "Código Truper:" in labels and quick.find.text()=="BUSCAR CÓDIGO TRUPER"
+    assert quick.form.labelForField(quick.bulk_unit).isHidden();quick.kind.setCurrentText("GRANEL");app.processEvents();assert not quick.form.labelForField(quick.bulk_unit).isHidden()
     item=product(db,"7501206683731");modify=ProductModifyDialog(item,ProductService(db));assert any("Precio catálogo Truper" in text for text in _visible_labels(modify))
 
 
