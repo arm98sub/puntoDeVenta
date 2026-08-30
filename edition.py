@@ -19,11 +19,12 @@ class EditionConfig:
     database_relative_path: Path
     truper_enabled: bool
     auto_recalculate_sale_price_from_cost: bool
+    purchases_enabled: bool
 
 
 EDITION_CONFIGS = {
-    Edition.FERRETERIA: EditionConfig(Edition.FERRETERIA, "Ferretería POS", Path("data/ferreteria.db"), True, True),
-    Edition.GENERAL: EditionConfig(Edition.GENERAL, "PuntoDeVenta General", Path("data/punto_venta.db"), False, False),
+    Edition.FERRETERIA: EditionConfig(Edition.FERRETERIA, "Ferretería POS", Path("data/ferreteria.db"), True, True, False),
+    Edition.GENERAL: EditionConfig(Edition.GENERAL, "PuntoDeVenta General", Path("data/punto_venta.db"), False, False, True),
 }
 
 

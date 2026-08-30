@@ -472,7 +472,7 @@ class ProductsPage(PaginatedProductsPage):
         try:
             state=self.products.estado_eliminacion(product.id)
             if state["puede_eliminar"]:message=f"Esta acción eliminará definitivamente {nombre_producto(product)} porque no tiene historial."
-            else:message=f"Este producto tiene historial ({state['ventas']} ventas, {state['movimientos']} movimientos) y no puede eliminarse. Se DESACTIVARÁ."
+            else:message=f"Este producto tiene historial ({state['ventas']} ventas, {state['compras']} compras, {state['movimientos']} movimientos) y no puede eliminarse. Se DESACTIVARÁ."
             if QMessageBox.question(self,"Eliminar producto",message+"\n\n¿Continuar?")!=QMessageBox.Yes:return
             result=self.products.eliminar_o_desactivar(product.id);QMessageBox.information(self,"Producto",f"Producto {result['accion'].lower()} correctamente.");self.reload()
         except Exception as exc:show_error(self,"No se pudo eliminar/desactivar",exc)

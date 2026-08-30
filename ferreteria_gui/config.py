@@ -9,6 +9,7 @@ LOG_DIR=Path(os.environ.get("FERRETERIA_LOG_DIR",PATHS.logs))
 APP_NAME = EDITION.app_name
 APP_EDITION = EDITION.edition
 TRUPER_ENABLED = EDITION.truper_enabled
+PURCHASES_ENABLED = EDITION.purchases_enabled
 PAGE_SIZE = 50
 TICKET_ROOT=PATHS.tickets
 BRANDING_DIR=PATHS.branding

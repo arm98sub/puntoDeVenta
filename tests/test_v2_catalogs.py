@@ -31,7 +31,7 @@ def test_migracion_8_a_9_conserva_datos_y_normaliza_categorias(tmp_path):
     connection.execute("INSERT INTO movimientos_inventario(producto_id,tipo,cantidad,existencia_anterior,existencia_nueva) VALUES(?,'AJUSTE',1,0,1)",(ids[0],));connection.commit();connection.close()
     Database(path).migrate()
     with sqlite3.connect(path) as connection:
-        assert connection.execute("SELECT max(version) FROM schema_migrations").fetchone()[0]==9
+        assert connection.execute("SELECT max(version) FROM schema_migrations").fetchone()[0]==10
         assert connection.execute("SELECT count(*) FROM categorias").fetchone()[0]==1
         assert len({row[0] for row in connection.execute("SELECT categoria_id FROM productos")})==1
         assert connection.execute("SELECT group_concat(categoria,'|') FROM productos").fetchone()[0]=="Herramientas| herramientas |HERRAMIENTAS"

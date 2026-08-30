@@ -124,7 +124,7 @@ class ProductRepository:
 
     @staticmethod
     def update_fields(connection, product_id, values):
-        allowed={"descripcion","precio_catalogo_publico","precio_proveedor","porcentaje_ganancia","precio_venta","tipo_venta","unidad_granel","controla_inventario","activo","categoria","categoria_id","proveedor_principal_id","stock_minimo","stock_minimo_granel_mg","precio_variable"}
+        allowed={"descripcion","precio_catalogo_publico","precio_proveedor","porcentaje_ganancia","precio_venta","tipo_venta","unidad_granel","controla_inventario","activo","categoria","categoria_id","proveedor_principal_id","presentacion_compra_id","contenido_por_presentacion","stock_minimo","stock_minimo_granel_mg","precio_variable"}
         if not values or not set(values)<=allowed:raise ValueError("Campos de producto no permitidos")
         assignments=",".join(f"{field}=?" for field in values)
         cursor=connection.execute(f"UPDATE productos SET {assignments},updated_at=strftime('%Y-%m-%dT%H:%M:%fZ','now') WHERE id=?",(*values.values(),product_id))
@@ -181,6 +181,7 @@ class ProductRepository:
         return {
             "ventas": connection.execute("SELECT count(*) FROM detalle_venta WHERE producto_id=?", (product_id,)).fetchone()[0],
             "movimientos": connection.execute("SELECT count(*) FROM movimientos_inventario WHERE producto_id=?", (product_id,)).fetchone()[0],
+            "compras": connection.execute("SELECT count(*) FROM compra_detalles WHERE producto_id=?",(product_id,)).fetchone()[0],
         }
 
     @staticmethod

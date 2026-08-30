@@ -31,7 +31,7 @@ def make_install(root:Path,version="1.1.2"):
     return validate_installation(root)
 
 
-def make_package(root:Path,version="1.1.4",*,required=9,target=9,migration=False):
+def make_package(root:Path,version="1.1.4",*,required=10,target=10,migration=False):
     root.mkdir(parents=True);payload=root/"payload";payload.mkdir();(payload/"PuntoDeVenta.exe").write_bytes(b"NEW-EXE");(payload/"_internal").mkdir();(payload/"_internal"/"new.dll").write_bytes(b"NEW")
     (root/"version.json").write_text(json.dumps({"version":version,"required_schema_min":required,"target_schema":target,"migration_required":migration}),encoding="utf-8")
     return load_package(root)

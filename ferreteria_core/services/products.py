@@ -259,6 +259,12 @@ class ProductService:
         with self.database.transaction() as connection:
             return ProductRepository.update_description(connection,producto_id,value)
 
+    def configurar_presentacion_compra(self,producto_id,presentacion_id=None,contenido_por_presentacion=None):
+        if contenido_por_presentacion is not None and (not isinstance(contenido_por_presentacion,int) or contenido_por_presentacion<=0):raise ValueError("El contenido habitual debe ser un entero interno positivo")
+        with self.database.transaction() as connection:
+            if ProductRepository.get(connection,producto_id) is None:raise LookupError("El producto no existe")
+            return ProductRepository.update_fields(connection,producto_id,{"presentacion_compra_id":presentacion_id,"contenido_por_presentacion":contenido_por_presentacion})
+
     def aplicar_cambios(self, cambios: dict[int,dict]):
         normalized={}
         if not cambios:raise ValueError("No hay cambios para guardar")

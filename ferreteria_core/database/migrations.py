@@ -29,6 +29,73 @@ CREATE INDEX IF NOT EXISTS ix_productos_categoria_id ON productos(categoria_id);
 CREATE INDEX IF NOT EXISTS ix_productos_proveedor_principal_id ON productos(proveedor_principal_id);
 """
 
+MIGRATION_10 = """
+CREATE TABLE presentaciones_compra (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    nombre TEXT NOT NULL,
+    nombre_normalizado TEXT NOT NULL UNIQUE,
+    activo INTEGER NOT NULL DEFAULT 1 CHECK(activo IN (0,1)),
+    created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
+    updated_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
+);
+ALTER TABLE productos ADD COLUMN presentacion_compra_id INTEGER REFERENCES presentaciones_compra(id);
+ALTER TABLE productos ADD COLUMN contenido_por_presentacion INTEGER CHECK(contenido_por_presentacion IS NULL OR contenido_por_presentacion > 0);
+CREATE INDEX ix_productos_presentacion_compra_id ON productos(presentacion_compra_id);
+CREATE TABLE compras (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    folio TEXT NOT NULL UNIQUE,
+    proveedor_id INTEGER REFERENCES proveedores(id),
+    proveedor_nombre_snapshot TEXT,
+    folio_proveedor TEXT,
+    fecha TEXT NOT NULL,
+    estado TEXT NOT NULL DEFAULT 'CONFIRMADA' CHECK(estado IN ('CONFIRMADA','CANCELADA')),
+    total_centavos INTEGER NOT NULL CHECK(total_centavos >= 0),
+    notas TEXT,
+    created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
+    updated_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
+);
+CREATE INDEX ix_compras_fecha ON compras(fecha DESC,id DESC);
+CREATE TABLE compra_detalles (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    compra_id INTEGER NOT NULL REFERENCES compras(id),
+    producto_id INTEGER NOT NULL REFERENCES productos(id),
+    descripcion_snapshot TEXT NOT NULL,
+    tipo_venta_snapshot TEXT NOT NULL CHECK(tipo_venta_snapshot IN ('UNIDAD','GRANEL')),
+    unidad_granel_snapshot TEXT CHECK(unidad_granel_snapshot IS NULL OR unidad_granel_snapshot IN ('PESO','VOLUMEN')),
+    presentacion_id INTEGER REFERENCES presentaciones_compra(id),
+    presentacion_snapshot TEXT NOT NULL,
+    cantidad_presentaciones TEXT NOT NULL,
+    contenido_por_presentacion INTEGER NOT NULL CHECK(contenido_por_presentacion > 0),
+    cantidad_base INTEGER NOT NULL CHECK(cantidad_base > 0),
+    costo_presentacion_centavos INTEGER NOT NULL CHECK(costo_presentacion_centavos >= 0),
+    costo_unitario_centavos INTEGER NOT NULL CHECK(costo_unitario_centavos >= 0),
+    subtotal_centavos INTEGER NOT NULL CHECK(subtotal_centavos >= 0),
+    controla_inventario_snapshot INTEGER NOT NULL CHECK(controla_inventario_snapshot IN (0,1)),
+    created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
+);
+CREATE INDEX ix_compra_detalles_compra ON compra_detalles(compra_id);
+CREATE INDEX ix_compra_detalles_producto ON compra_detalles(producto_id);
+ALTER TABLE movimientos_inventario RENAME TO movimientos_inventario_v9;
+CREATE TABLE movimientos_inventario (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    producto_id INTEGER NOT NULL REFERENCES productos(id),
+    tipo TEXT NOT NULL CHECK(tipo IN ('ENTRADA','VENTA','AJUSTE','DEVOLUCION','COMPRA','CANCELACION_COMPRA')),
+    cantidad INTEGER NOT NULL,
+    existencia_anterior INTEGER NOT NULL CHECK(existencia_anterior >= 0),
+    existencia_nueva INTEGER NOT NULL CHECK(existencia_nueva >= 0),
+    referencia TEXT,
+    nota TEXT,
+    fecha_hora TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
+    tipo_venta_snapshot TEXT NOT NULL DEFAULT 'UNIDAD' CHECK(tipo_venta_snapshot IN ('UNIDAD','GRANEL')),
+    cantidad_mg INTEGER,
+    existencia_anterior_mg INTEGER,
+    existencia_nueva_mg INTEGER
+);
+INSERT INTO movimientos_inventario SELECT * FROM movimientos_inventario_v9;
+DROP TABLE movimientos_inventario_v9;
+CREATE INDEX ix_movimientos_producto ON movimientos_inventario(producto_id,fecha_hora);
+"""
+
 
 MIGRATIONS = [
     (
@@ -197,4 +264,5 @@ MIGRATIONS = [
         """,
     ),
     (9, MIGRATION_9),
+    (10, MIGRATION_10),
 ]

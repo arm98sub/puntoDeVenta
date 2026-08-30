@@ -4,7 +4,7 @@ from PySide6.QtCore import Qt,Signal,QUrl
 from PySide6.QtGui import QDesktopServices,QPixmap
 from PySide6.QtWidgets import QFileDialog,QFormLayout,QHBoxLayout,QLabel,QLineEdit,QMessageBox,QPushButton,QVBoxLayout,QWidget,QDialog,QComboBox,QInputDialog
 
-from ferreteria_core.services import BackupService,BusinessConfigService,CategoryService,SupplierService,validar_respaldo
+from ferreteria_core.services import BackupService,BusinessConfigService,CategoryService,PurchasePresentationService,SupplierService,validar_respaldo
 from edition import EDITION,Edition
 from ferreteria_core.version import __version__
 from .config import BACKUP_ROOT,BRANDING_DIR
@@ -51,7 +51,7 @@ class SettingsPage(QWidget):
 
 class CatalogManagerDialog(QDialog):
     def __init__(self,database,kind,parent=None):
-        super().__init__(parent);self.kind=kind;self.service=CategoryService(database) if kind=="category" else SupplierService(database);self.setWindowTitle("Categorías" if kind=="category" else "Proveedores");layout=QVBoxLayout(self);self.items=QComboBox();layout.addWidget(self.items);row=QHBoxLayout();create=QPushButton("Crear");rename=QPushButton("Renombrar");toggle=QPushButton("Activar / desactivar");close=QPushButton("Cerrar")
+        super().__init__(parent);self.kind=kind;self.service=CategoryService(database) if kind=="category" else (PurchasePresentationService(database) if kind=="presentation" else SupplierService(database));self.setWindowTitle({"category":"Categorías","supplier":"Proveedores","presentation":"Presentaciones"}[kind]);layout=QVBoxLayout(self);self.items=QComboBox();layout.addWidget(self.items);row=QHBoxLayout();create=QPushButton("Crear");rename=QPushButton("Renombrar");toggle=QPushButton("Activar / desactivar");close=QPushButton("Cerrar")
         for button in (create,rename,toggle,close):row.addWidget(button)
         layout.addLayout(row);create.clicked.connect(self._create);rename.clicked.connect(self._rename);toggle.clicked.connect(self._toggle);close.clicked.connect(self.accept);self._load()
     def _all(self):return self.service.listar_todas()

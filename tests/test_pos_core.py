@@ -133,7 +133,7 @@ def test_centavos_a_decimal(): assert centavos_a_decimal(850) == Decimal("8.5")
 
 def test_backup_sqlite(db, tmp_path):
     target = respaldar_base(db, tmp_path / "backups")
-    with sqlite3.connect(target) as c: assert c.execute("SELECT count(*) FROM schema_migrations").fetchone()[0] == 9
+    with sqlite3.connect(target) as c: assert c.execute("SELECT count(*) FROM schema_migrations").fetchone()[0] == 10
 
 
 def test_flujo_inventario_inicial_atomico(db, catalog):

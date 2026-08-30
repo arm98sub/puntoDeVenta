@@ -28,6 +28,8 @@ class Product:
     precio_variable: bool
     categoria_id: int | None = None
     proveedor_principal_id: int | None = None
+    presentacion_compra_id: int | None = None
+    contenido_por_presentacion: int | None = None
 
     @classmethod
     def from_row(cls, row):

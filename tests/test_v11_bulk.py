@@ -162,4 +162,4 @@ def test_restaurar_backup_v1_migra_incrementalmente(tmp_path):
     connection.execute("INSERT INTO productos(descripcion,existencia) VALUES('Legado',3)");connection.commit();connection.close()
     target=Database(tmp_path/"target.db");target.migrate();BackupService(target,tmp_path/"backups").restaurar(old)
     product=ProductService(target).get(1);assert product.tipo_venta=="UNIDAD" and product.existencia==3
-    assert validar_respaldo(target.path).schema_version==9
+    assert validar_respaldo(target.path).schema_version==10

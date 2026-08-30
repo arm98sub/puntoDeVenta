@@ -6,7 +6,7 @@ from PySide6.QtWidgets import QApplication, QMessageBox,QPushButton
 
 from ferreteria_core import Database
 from ferreteria_core.services import BackupService
-from ferreteria_core.services import seed_general_categories
+from ferreteria_core.services import seed_general_categories,seed_general_purchase_presentations
 from edition import EDITION,Edition
 from .config import APP_NAME, BACKUP_ROOT, DATABASE_PATH
 from .logging_setup import configure_logging
@@ -21,7 +21,7 @@ def run(db_path=DATABASE_PATH):
         database=Database(db_path)
         if database.needs_migration():BackupService(database,BACKUP_ROOT).crear_pre_migracion()
         database.migrate()
-        if EDITION.edition is Edition.GENERAL:seed_general_categories(database)
+        if EDITION.edition is Edition.GENERAL:seed_general_categories(database);seed_general_purchase_presentations(database)
         app._keyboard_filter=KeyboardActivationFilter(app);app.installEventFilter(app._keyboard_filter);window=MainWindow(database,BACKUP_ROOT); window.show()
         if os.environ.get("PUNTO_VENTA_SMOKE_TEST")=="1":
             app.setQuitOnLastWindowClosed(False);QTimer.singleShot(800,lambda:_smoke_close(window,app,logger))
