@@ -42,13 +42,14 @@ def _smoke_close(window,app,logger):
     exit_code=0
     try:
         for index in range(window.stack.count()):window.nav.setCurrentRow(index);app.processEvents()
-        if window.products.table.rowCount()==0 or window.inventory.table.rowCount()==0:raise RuntimeError("Productos o inventario no muestran datos")
-        if window.history.table.rowCount()==0:raise RuntimeError("El historial no muestra ventas existentes")
+        clean_smoke=os.environ.get("PUNTO_VENTA_CLEAN_SMOKE_TEST")=="1"
+        if not clean_smoke and (window.products.table.rowCount()==0 or window.inventory.table.rowCount()==0):raise RuntimeError("Productos o inventario no muestran datos")
+        if not clean_smoke and window.history.table.rowCount()==0:raise RuntimeError("El historial no muestra ventas existentes")
         if not window.business_name.text().strip():raise RuntimeError("El nombre del negocio está vacío")
         product_headers=[window.products.table.horizontalHeaderItem(i).text() for i in range(window.products.table.columnCount())]
         inventory_headers=[window.inventory.table.horizontalHeaderItem(i).text() for i in range(window.inventory.table.columnCount())]
         expected_headers={"Precio proveedor","Ganancia %"} if EDITION.edition is Edition.FERRETERIA else {"Categoría","Costo","Stock mínimo"}
-        if __version__!="1.1.4" or not expected_headers<=set(product_headers):raise RuntimeError("La GUI no corresponde a la edición/version esperada")
+        if __version__!=EDITION.version or not expected_headers<=set(product_headers):raise RuntimeError("La GUI no corresponde a la edición/version esperada")
         if not window.history.summary_title.text() or window.pos.set_quantity_button.text().find("F10")<0:raise RuntimeError("Faltan funciones esenciales del POS")
         if "Precio venta" not in inventory_headers:raise RuntimeError("Existencias no muestra precio de venta")
         window.nav.setCurrentRow(0);window.pos.focus_scanner();app.processEvents()

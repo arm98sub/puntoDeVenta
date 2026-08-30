@@ -45,16 +45,19 @@ class SaleRepository:
         return SaleRepository._assemble(connection, row) if row else None
 
     @staticmethod
-    def list(connection, limit=20, date_from=None, date_to=None):
+    def list(connection, limit=20, date_from=None, date_to=None,offset=0,include_details=True):
         clauses, params = [], []
         if date_from is not None:
             clauses.append("fecha_hora >= ?"); params.append(date_from)
         if date_to is not None:
             clauses.append("fecha_hora <= ?"); params.append(date_to)
         where = " WHERE " + " AND ".join(clauses) if clauses else ""
-        params.append(limit)
-        rows = connection.execute(f"SELECT * FROM ventas{where} ORDER BY fecha_hora DESC, id DESC LIMIT ?", params)
-        return [SaleRepository._assemble(connection, row) for row in rows]
+        params.extend((limit,offset))
+        rows = connection.execute(f"SELECT * FROM ventas{where} ORDER BY fecha_hora DESC, id DESC LIMIT ? OFFSET ?", params)
+        if include_details:return [SaleRepository._assemble(connection, row) for row in rows]
+        return [Sale(**{**{name:row[name] for name in Sale.__dataclass_fields__ if name!="detalles"},"detalles":[]}) for row in rows]
+    @staticmethod
+    def count(connection):return connection.execute("SELECT count(*) FROM ventas").fetchone()[0]
 
     @staticmethod
     def daily_summary(connection,start_utc,end_utc):

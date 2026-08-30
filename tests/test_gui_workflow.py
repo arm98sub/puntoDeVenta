@@ -12,7 +12,8 @@ from PySide6.QtWidgets import QAbstractItemView, QApplication, QDialog, QLabel
 from ferreteria_core import Database
 from edition import Edition,get_edition_config
 from ferreteria_core.services import ProductService
-from ferreteria_gui.pages import InventoryPage, PosPage, ProductsPage
+from ferreteria_gui.pages import HistoryPage, InventoryPage, PosPage, ProductsPage
+from ferreteria_gui.purchases_page import PurchasesPage
 from ferreteria_gui.dialogs import PaymentDialog,ProductModifyDialog,QuickProductDialog
 from ferreteria_gui.dialogs import QuickStockDialog
 from ferreteria_gui.app import KeyboardActivationFilter
@@ -60,6 +61,28 @@ def test_general_oculta_truper_en_alta_y_modificacion(app,db,monkeypatch):
 def test_general_no_muestra_branding_ferreteria(app,db,monkeypatch):
     monkeypatch.setattr(gui_config,"TRUPER_ENABLED",False);monkeypatch.setattr(gui_config,"APP_NAME","PuntoDeVenta General")
     window=MainWindow(db);assert window.business_name.text()=="PuntoDeVenta General" and "FERRETERÍA" not in window.business_name.text().upper()
+
+
+def test_paginas_diferidas_refrescan_en_cada_visita_sin_consultar_al_arrancar(app,db,monkeypatch):
+    calls={"products":0,"inventory":0,"purchases":0,"history":0}
+    def track(name):
+        def refresh(page,*_args,**_kwargs):
+            calls[name]+=1;page._loaded=True
+        return refresh
+    monkeypatch.setattr(ProductsPage,"reload",track("products"))
+    monkeypatch.setattr(InventoryPage,"reload",track("inventory"))
+    monkeypatch.setattr(PurchasesPage,"refresh",track("purchases"))
+    monkeypatch.setattr(HistoryPage,"refresh",track("history"))
+    window=MainWindow(db)
+    assert calls=={"products":0,"inventory":0,"purchases":0,"history":0}
+    pages=[("products",window.products),("inventory",window.inventory),("history",window.history)]
+    if window.purchases is not None:pages.insert(2,("purchases",window.purchases))
+    for name,page in pages:
+        index=window.stack.indexOf(page)
+        window.nav.setCurrentRow(index);app.processEvents();assert calls[name]==1
+        window.nav.setCurrentRow(0);app.processEvents()
+        window.nav.setCurrentRow(index);app.processEvents();assert calls[name]==2
+    window.close()
 
 
 def test_ferreteria_conserva_controles_truper(app,db,monkeypatch):

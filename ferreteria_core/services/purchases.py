@@ -107,9 +107,13 @@ class PurchaseService:
             return PurchaseRepository.get(connection,purchase_id)
     def obtener(self,purchase_id):
         with self.database.connect() as connection:return PurchaseRepository.get(connection,purchase_id)
-    def listar(self,estado=None,limit=100):
+    def listar(self,estado=None,limit=100,offset=0):
         if estado not in {None,"CONFIRMADA","CANCELADA"}:raise ValueError("Estado de compra inválido")
-        with self.database.connect() as connection:return PurchaseRepository.list(connection,estado,limit)
+        if not isinstance(offset,int) or offset<0:raise ValueError("El desplazamiento no puede ser negativo")
+        with self.database.connect() as connection:return PurchaseRepository.list(connection,estado,limit,offset)
+    def contar(self,estado=None):
+        if estado not in {None,"CONFIRMADA","CANCELADA"}:raise ValueError("Estado de compra inválido")
+        with self.database.connect() as connection:return PurchaseRepository.count(connection,estado)
     def cancelar(self,purchase_id):
         with self.database.transaction() as connection:
             purchase=PurchaseRepository.get(connection,purchase_id)

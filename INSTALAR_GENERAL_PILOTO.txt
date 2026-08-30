@@ -1,0 +1,25 @@
+PUNTODEVENTA GENERAL 0.9.0 PILOTO - INSTALACIÓN PORTABLE
+========================================================
+
+IMPORTANTE: copie TODA la carpeta PuntoDeVenta-General-0.9.0. No copie sólo
+PuntoDeVenta.exe y no agregue ninguna base de datos a la distribución.
+
+1. Copie la carpeta completa a almacenamiento local, preferentemente
+   C:\PuntoDeVenta-General. Evite OneDrive y carpetas sincronizadas.
+2. Abra PuntoDeVenta.exe. No requiere Python, Git, Internet ni permisos de
+   administrador.
+3. En el primer arranque se creará data\punto_venta.db automáticamente.
+4. Configure nombre, dirección y teléfono del negocio.
+5. Cree una categoría, un proveedor, un producto UNIDAD y un producto GRANEL.
+6. Registre una compra y confirme el aumento de existencia.
+7. Registre una venta pequeña y confirme la disminución de existencia.
+8. Cierre y vuelva a abrir la aplicación; confirme que los datos persisten.
+9. En Configuración, cree un respaldo manual en backups\manual.
+10. Guarde copias periódicas de la carpeta backups en una unidad externa.
+
+Desde el primer uso con datos reales, data\punto_venta.db es PRODUCCIÓN. Nunca
+la sustituya con una base recibida en ZIP, USB o paquete de actualización.
+
+Windows SmartScreen puede advertir que el ejecutable no tiene firma digital.
+No desactive la seguridad de Windows; continúe sólo si recibió esta distribución
+de una fuente confiable.

@@ -18,6 +18,7 @@ from edition import Edition, parse_edition, get_edition_config
 
 EXPECTED_TABLES={"productos","movimientos_inventario","ventas","detalle_venta","schema_migrations"}
 PERSISTENT_NAMES={"data","tickets","backups","logs"}
+DATABASE_SUFFIXES={".db",".sqlite",".sqlite3"}
 CURRENT_SCHEMA=10
 
 
@@ -77,7 +78,7 @@ def load_package(root:Path)->Package:
     data=json.loads(metadata.read_text(encoding="utf-8"));version=str(data.get("version") or "").strip()
     if not version:raise ValueError("La versión del paquete está vacía")
     if not (payload/"PuntoDeVenta.exe").is_file() or not (payload/"_internal").is_dir():raise ValueError("El paquete de aplicación está incompleto")
-    if any(path.is_file() and path.suffix.lower()==".db" for path in payload.rglob("*")):raise ValueError("El paquete contiene una base de datos prohibida")
+    if any(path.is_file() and path.suffix.lower() in DATABASE_SUFFIXES for path in payload.rglob("*")):raise ValueError("El paquete contiene una base de datos prohibida")
     if any((payload/name).exists() for name in PERSISTENT_NAMES):raise ValueError("El payload contiene carpetas de datos de usuario")
     target=int(data.get("target_schema",data.get("schema_version",CURRENT_SCHEMA)))
     required=int(data.get("required_schema_min",target))

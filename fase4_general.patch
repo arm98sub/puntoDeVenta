@@ -1,0 +1,690 @@
+diff --git a/ACTUALIZAR_GENERAL_PILOTO.txt b/ACTUALIZAR_GENERAL_PILOTO.txt
+new file mode 100644
+index 0000000..28f606b
+--- /dev/null
++++ b/ACTUALIZAR_GENERAL_PILOTO.txt
+@@ -0,0 +1,11 @@
++ACTUALIZAR PUNTODEVENTA GENERAL PILOTO
++=====================================
++
++1. Cierre PuntoDeVenta General.
++2. Copie completa esta carpeta de actualización a la PC del negocio.
++3. Abra ActualizarPuntoDeVenta.exe.
++4. Confirme que la instalación detectada indica edición GENERAL.
++5. Pulse ACTUALIZAR y espere la confirmación.
++
++El actualizador rechaza paquetes de otra edición, crea un respaldo antes de
++cambiar archivos y no incluye ni sustituye data\punto_venta.db.
+diff --git a/INSTALAR_GENERAL_PILOTO.txt b/INSTALAR_GENERAL_PILOTO.txt
+new file mode 100644
+index 0000000..38b1726
+--- /dev/null
++++ b/INSTALAR_GENERAL_PILOTO.txt
+@@ -0,0 +1,25 @@
++PUNTODEVENTA GENERAL 0.9.0 PILOTO - INSTALACIÓN PORTABLE
++========================================================
++
++IMPORTANTE: copie TODA la carpeta PuntoDeVenta-General-0.9.0. No copie sólo
++PuntoDeVenta.exe y no agregue ninguna base de datos a la distribución.
++
++1. Copie la carpeta completa a almacenamiento local, preferentemente
++   C:\PuntoDeVenta-General. Evite OneDrive y carpetas sincronizadas.
++2. Abra PuntoDeVenta.exe. No requiere Python, Git, Internet ni permisos de
++   administrador.
++3. En el primer arranque se creará data\punto_venta.db automáticamente.
++4. Configure nombre, dirección y teléfono del negocio.
++5. Cree una categoría, un proveedor, un producto UNIDAD y un producto GRANEL.
++6. Registre una compra y confirme el aumento de existencia.
++7. Registre una venta pequeña y confirme la disminución de existencia.
++8. Cierre y vuelva a abrir la aplicación; confirme que los datos persisten.
++9. En Configuración, cree un respaldo manual en backups\manual.
++10. Guarde copias periódicas de la carpeta backups en una unidad externa.
++
++Desde el primer uso con datos reales, data\punto_venta.db es PRODUCCIÓN. Nunca
++la sustituya con una base recibida en ZIP, USB o paquete de actualización.
++
++Windows SmartScreen puede advertir que el ejecutable no tiene firma digital.
++No desactive la seguridad de Windows; continúe sólo si recibió esta distribución
++de una fuente confiable.
+diff --git a/build_gui_updater.ps1 b/build_gui_updater.ps1
+index 705f7ba..706bf91 100644
+--- a/build_gui_updater.ps1
++++ b/build_gui_updater.ps1
+@@ -3,9 +3,10 @@ param([ValidateSet("FERRETERIA", "GENERAL")][string]$Edition = "FERRETERIA")
+ $ErrorActionPreference="Stop"
+ $Root=[System.IO.Path]::GetFullPath($PSScriptRoot)
+ $Python=Join-Path $Root ".venv\Scripts\python.exe"
+-$Stage=Join-Path $Root "build\gui_updater_1.1.4"
++$AppVersion=if ($Edition -eq "GENERAL") { "0.9.0" } else { "1.1.4" }
++$Stage=Join-Path $Root ("build\gui_updater_" + $AppVersion + "_" + $Edition)
+ $PackageSuffix=if ($Edition -eq "GENERAL") { "_GENERAL" } else { "" }
+-$Package=Join-Path $Root ("dist\PuntoDeVenta_Actualizacion_1.1.4" + $PackageSuffix)
++$Package=Join-Path $Root ("dist\PuntoDeVenta_Actualizacion_" + $AppVersion + $PackageSuffix)
+ 
+ function Assert-SafeChild([string]$Path,[string]$Parent) {
+     $child=[System.IO.Path]::GetFullPath($Path)
+@@ -40,10 +41,12 @@ Copy-Item -LiteralPath (Join-Path $PosBuild "PuntoDeVenta.exe") -Destination (Jo
+ Copy-Item -LiteralPath (Join-Path $PosBuild "_internal") -Destination (Join-Path $Package "payload") -Recurse
+ $VersionData=Get-Content -LiteralPath (Join-Path $Root "version.json") -Raw | ConvertFrom-Json
+ $VersionData.edition=$Edition
++$VersionData.version=$AppVersion
+ $VersionData | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $Package "version.json") -Encoding utf8
+-Copy-Item -LiteralPath (Join-Path $Root "ACTUALIZAR_PUNTO_DE_VENTA.txt") -Destination $Package
++$UpdateGuide=if ($Edition -eq "GENERAL") { "ACTUALIZAR_GENERAL_PILOTO.txt" } else { "ACTUALIZAR_PUNTO_DE_VENTA.txt" }
++Copy-Item -LiteralPath (Join-Path $Root $UpdateGuide) -Destination (Join-Path $Package "ACTUALIZAR_PUNTO_DE_VENTA.txt")
+ 
+-$forbidden=Get-ChildItem -LiteralPath $Package -Recurse -File | Where-Object { $_.Name -eq "ferreteria.db" -or $_.Extension -eq ".db" }
++$forbidden=Get-ChildItem -LiteralPath $Package -Recurse -File | Where-Object { $_.Extension.ToLowerInvariant() -in @(".db",".sqlite",".sqlite3") }
+ if ($forbidden) { throw "El paquete contiene una base de datos prohibida" }
+ foreach ($name in @("data","tickets","backups","logs")) {
+     if (Test-Path -LiteralPath (Join-Path $Package "payload\$name")) { throw "El payload contiene datos: $name" }
+diff --git a/build_windows.ps1 b/build_windows.ps1
+index 35d1cfe..c2e7d0d 100644
+--- a/build_windows.ps1
++++ b/build_windows.ps1
+@@ -9,6 +9,9 @@ $Python = Join-Path $ProjectRoot ".venv\Scripts\python.exe"
+ $Spec = Join-Path $ProjectRoot "PuntoDeVenta.spec"
+ $BuildTarget = Join-Path $ProjectRoot "build\PuntoDeVenta"
+ $DistTarget = Join-Path $ProjectRoot "dist\PuntoDeVenta"
++$AppVersion = if ($Edition -eq "GENERAL") { "0.9.0" } else { "1.1.4" }
++$ReleaseName = if ($Edition -eq "GENERAL") { "PuntoDeVenta-General-$AppVersion" } else { "PuntoDeVenta" }
++$ReleaseTarget = Join-Path $ProjectRoot ("dist\" + $ReleaseName)
+ 
+ function Assert-SafeChild([string]$Path, [string]$Parent) {
+     $resolvedPath = [System.IO.Path]::GetFullPath($Path)
+@@ -25,8 +28,11 @@ if ($IncludeRealData) {
+ }
+ Assert-SafeChild $BuildTarget $ProjectRoot
+ Assert-SafeChild $DistTarget $ProjectRoot
++Assert-SafeChild $ReleaseTarget $ProjectRoot
++if ($Edition -eq "GENERAL" -and $IncludeRealData) { throw "GENERAL piloto nunca permite incluir una base de datos en el build" }
+ if (Test-Path -LiteralPath $BuildTarget) { Remove-Item -LiteralPath $BuildTarget -Recurse -Force }
+ if (Test-Path -LiteralPath $DistTarget) { Remove-Item -LiteralPath $DistTarget -Recurse -Force }
++if ($ReleaseTarget -ne $DistTarget -and (Test-Path -LiteralPath $ReleaseTarget)) { Remove-Item -LiteralPath $ReleaseTarget -Recurse -Force }
+ 
+ $PreviousEdition = $env:PUNTO_VENTA_EDITION
+ $env:PUNTO_VENTA_EDITION = $Edition
+@@ -36,12 +42,18 @@ finally {
+     else { $env:PUNTO_VENTA_EDITION = $PreviousEdition }
+ }
+ if ($LASTEXITCODE -ne 0) { throw "PyInstaller terminó con código $LASTEXITCODE" }
++if ($ReleaseTarget -ne $DistTarget) { Move-Item -LiteralPath $DistTarget -Destination $ReleaseTarget; $DistTarget=$ReleaseTarget }
+ 
+ foreach ($relative in @("data\branding", "tickets", "backups\manual", "backups\automatic", "logs")) {
+     New-Item -ItemType Directory -Force -Path (Join-Path $DistTarget $relative) | Out-Null
+ }
+-Copy-Item -LiteralPath (Join-Path $ProjectRoot "INSTALAR_EN_OTRA_PC.txt") -Destination $DistTarget
++$InstallGuide=if ($Edition -eq "GENERAL") { "INSTALAR_GENERAL_PILOTO.txt" } else { "INSTALAR_EN_OTRA_PC.txt" }
++Copy-Item -LiteralPath (Join-Path $ProjectRoot $InstallGuide) -Destination (Join-Path $DistTarget "INSTALAR_EN_OTRA_PC.txt")
+ Copy-Item -LiteralPath (Join-Path $ProjectRoot "crear_acceso_directo.ps1") -Destination $DistTarget
++$VersionData=Get-Content -LiteralPath (Join-Path $ProjectRoot "version.json") -Raw | ConvertFrom-Json
++$VersionData.edition=$Edition
++$VersionData.version=$AppVersion
++$VersionData | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $DistTarget "version.json") -Encoding utf8
+ 
+ if ($IncludeRealData) {
+     & $Python (Join-Path $ProjectRoot "prepare_distribution_data.py") `
+@@ -51,4 +63,6 @@ if ($IncludeRealData) {
+     if ($LASTEXITCODE -ne 0) { throw "No se pudieron preparar los datos reales" }
+ }
+ 
++$forbidden=Get-ChildItem -LiteralPath $DistTarget -Recurse -File | Where-Object { $_.Extension.ToLowerInvariant() -in @(".db",".sqlite",".sqlite3") }
++if ($forbidden -and -not $IncludeRealData) { throw "El build contiene una base de datos prohibida" }
+ Write-Host "Build terminado: $DistTarget"
+diff --git a/crear_acceso_directo.ps1 b/crear_acceso_directo.ps1
+index 8f12635..cf30d95 100644
+--- a/crear_acceso_directo.ps1
++++ b/crear_acceso_directo.ps1
+@@ -3,11 +3,16 @@ param([string]$ExePath = (Join-Path $PSScriptRoot "PuntoDeVenta.exe"))
+ $ExePath = [System.IO.Path]::GetFullPath($ExePath)
+ if (-not (Test-Path -LiteralPath $ExePath -PathType Leaf)) { throw "No existe el ejecutable: $ExePath" }
+ $Desktop = [Environment]::GetFolderPath("Desktop")
+-$ShortcutPath = Join-Path $Desktop "Punto de Venta.lnk"
++$MetadataPath=Join-Path $PSScriptRoot "version.json"
++$Metadata=if (Test-Path -LiteralPath $MetadataPath) { Get-Content -LiteralPath $MetadataPath -Raw | ConvertFrom-Json } else { $null }
++$IsGeneral=$Metadata -and $Metadata.edition -eq "GENERAL"
++$DisplayName=if ($IsGeneral) { "PuntoDeVenta General" } else { "Ferretería POS" }
++$Version=if ($Metadata -and $Metadata.version) { $Metadata.version } else { "desconocida" }
++$ShortcutPath = Join-Path $Desktop ($DisplayName + ".lnk")
+ $Shell = New-Object -ComObject WScript.Shell
+ $Shortcut = $Shell.CreateShortcut($ShortcutPath)
+ $Shortcut.TargetPath = $ExePath
+ $Shortcut.WorkingDirectory = Split-Path -Parent $ExePath
+-$Shortcut.Description = "Punto de Venta 1.1.0"
++$Shortcut.Description = "$DisplayName $Version"
+ $Shortcut.Save()
+ Write-Host "Acceso directo creado: $ShortcutPath"
+diff --git a/docs/FASE4_PILOTO.md b/docs/FASE4_PILOTO.md
+new file mode 100644
+index 0000000..d86f185
+--- /dev/null
++++ b/docs/FASE4_PILOTO.md
+@@ -0,0 +1,71 @@
++# Fase 4 — PuntoDeVenta General 0.9.0 Piloto
++
++## Arquitectura y seguridad
++
++- Build: PyInstaller ONEDIR mediante `build_windows.ps1 -Edition GENERAL`.
++- Ruta compilada: la raíz es la carpeta del ejecutable y la base se crea en
++  `data/punto_venta.db`.
++- Primer arranque: SQLite crea el archivo, aplica migraciones 1–10 y después
++  crea categorías y presentaciones `Pieza`, `Caja`, `Paquete` y `Display`.
++- GENERAL sólo acepta el override `PUNTO_VENTA_GENERAL_DB`; ignora
++  `FERRETERIA_DB`.
++- Los builds GENERAL rechazan `-IncludeRealData`. Build y updater rechazan
++  `.db`, `.sqlite` y `.sqlite3` sin distinguir mayúsculas.
++- El updater valida edición antes del backup y staging, preserva las carpetas
++  persistentes y realiza rollback de aplicación y base ante un fallo.
++
++## Rendimiento reproducible
++
++Comando:
++
++```powershell
++.\.venv\Scripts\python.exe scripts\benchmark_general.py
++```
++
++Medición del 29/08/2026 en Windows 11 sobre una DB temporal de 5,472,256 bytes:
++
++| Datos/operación | Resultado |
++|---|---:|
++| Productos | 5,000 |
++| Movimientos | 20,000 |
++| Ventas / detalles | 5,000 / 5,000 |
++| Compras / detalles | 2,000 / 2,000 |
++| Inicializar backend vacío | 180.919 ms |
++| Construir ventana (pantallas secundarias diferidas) | 454.460 ms |
++| Barcode exacto | 5.938 ms |
++| Código exacto | 4.346 ms |
++| Descripción (50 resultados) | 129.925 ms |
++| Agregar al carrito | 7.726 ms |
++| Registrar venta | 35.003 ms |
++| Primera página Productos | 14.725 ms |
++| Primera página Inventario | 13.145 ms |
++| Primera página Compras | 2.239 ms |
++| Primera página Historial | 1.980 ms |
++| Consulta de stock | 0.454 ms |
++| Pico Python medido al construir ventana | 2,068,304 bytes |
++
++La cifra de memoria es `tracemalloc` de asignaciones Python durante la
++construcción, no el working set completo de Qt/PyInstaller.
++
++## Prueba manual obligatoria en la PC piloto
++
++1. Copiar únicamente `PuntoDeVenta-General-0.9.0` a una carpeta local fuera de
++   OneDrive.
++2. Confirmar que no contiene ninguna DB y abrir `PuntoDeVenta.exe`.
++3. Confirmar que aparece `data/punto_venta.db` y que la aplicación reabre.
++4. Configurar el nombre del negocio.
++5. Crear categoría y proveedor.
++6. Crear un producto UNIDAD y otro GRANEL.
++7. Registrar una compra de ambos y verificar stock.
++8. Registrar una venta de ambos y verificar stock.
++9. Reiniciar y verificar persistencia de productos, compras, ventas y stock.
++10. Crear un respaldo manual; alterar nombre, precio y stock; restaurar el
++    respaldo y comprobar que regresan todos los valores.
++11. Con el POS cerrado, ejecutar un paquete GENERAL de prueba y comprobar que
++    la DB conserva tamaño, datos e integridad.
++12. Intentar seleccionar un paquete FERRETERIA y confirmar su rechazo antes de
++    que aparezca un nuevo respaldo.
++
++Las operaciones interactivas 4–12 requieren validación humana en la PC Windows
++10 real con su scanner y HDD; las pruebas automatizadas cubren el mismo dominio
++con bases temporales, pero no sustituyen esa aceptación física.
+diff --git a/edition.py b/edition.py
+index b376d6b..fabe120 100644
+--- a/edition.py
++++ b/edition.py
+@@ -20,11 +20,12 @@ class EditionConfig:
+     truper_enabled: bool
+     auto_recalculate_sale_price_from_cost: bool
+     purchases_enabled: bool
++    version: str
+ 
+ 
+ EDITION_CONFIGS = {
+-    Edition.FERRETERIA: EditionConfig(Edition.FERRETERIA, "Ferretería POS", Path("data/ferreteria.db"), True, True, False),
+-    Edition.GENERAL: EditionConfig(Edition.GENERAL, "PuntoDeVenta General", Path("data/punto_venta.db"), False, False, True),
++    Edition.FERRETERIA: EditionConfig(Edition.FERRETERIA, "Ferretería POS", Path("data/ferreteria.db"), True, True, False, "1.1.4"),
++    Edition.GENERAL: EditionConfig(Edition.GENERAL, "PuntoDeVenta General", Path("data/punto_venta.db"), False, False, True, "0.9.0"),
+ }
+ 
+ 
+diff --git a/ferreteria_core/repositories/purchases.py b/ferreteria_core/repositories/purchases.py
+index 5425ddb..2376664 100644
+--- a/ferreteria_core/repositories/purchases.py
++++ b/ferreteria_core/repositories/purchases.py
+@@ -42,11 +42,14 @@ class PurchaseRepository:
+         details=tuple(PurchaseDetail(**{name:(bool(item[name]) if name=="controla_inventario_snapshot" else item[name]) for name in PurchaseDetail.__dataclass_fields__}) for item in connection.execute("SELECT * FROM compra_detalles WHERE compra_id=? ORDER BY id",(purchase_id,)))
+         return Purchase(row["id"],row["folio"],row["proveedor_id"],row["proveedor_nombre_snapshot"],row["folio_proveedor"],row["fecha"],row["estado"],row["total_centavos"],row["notas"],details)
+     @staticmethod
+-    def list(connection,state=None,limit=100):
+-        where=" WHERE estado=?" if state else "";params=(state,limit) if state else (limit,)
+-        rows=connection.execute(f"SELECT *,(SELECT count(*) FROM compra_detalles d WHERE d.compra_id=compras.id) lineas FROM compras{where} ORDER BY fecha DESC,id DESC LIMIT ?",params)
++    def list(connection,state=None,limit=100,offset=0):
++        where=" WHERE estado=?" if state else "";params=(state,limit,offset) if state else (limit,offset)
++        rows=connection.execute(f"SELECT *,(SELECT count(*) FROM compra_detalles d WHERE d.compra_id=compras.id) lineas FROM compras{where} ORDER BY fecha DESC,id DESC LIMIT ? OFFSET ?",params)
+         return [dict(row) for row in rows]
+     @staticmethod
++    def count(connection,state=None):
++        return connection.execute("SELECT count(*) FROM compras"+(" WHERE estado=?" if state else ""),((state,) if state else ())).fetchone()[0]
++    @staticmethod
+     def cancel(connection,purchase_id):
+         cursor=connection.execute("UPDATE compras SET estado='CANCELADA',updated_at=strftime('%Y-%m-%dT%H:%M:%fZ','now') WHERE id=? AND estado='CONFIRMADA'",(purchase_id,))
+         if cursor.rowcount!=1:raise ValueError("La compra no está confirmada o ya fue cancelada")
+diff --git a/ferreteria_core/repositories/sales.py b/ferreteria_core/repositories/sales.py
+index 2a19e0c..ceaf1b2 100644
+--- a/ferreteria_core/repositories/sales.py
++++ b/ferreteria_core/repositories/sales.py
+@@ -45,16 +45,19 @@ class SaleRepository:
+         return SaleRepository._assemble(connection, row) if row else None
+ 
+     @staticmethod
+-    def list(connection, limit=20, date_from=None, date_to=None):
++    def list(connection, limit=20, date_from=None, date_to=None,offset=0,include_details=True):
+         clauses, params = [], []
+         if date_from is not None:
+             clauses.append("fecha_hora >= ?"); params.append(date_from)
+         if date_to is not None:
+             clauses.append("fecha_hora <= ?"); params.append(date_to)
+         where = " WHERE " + " AND ".join(clauses) if clauses else ""
+-        params.append(limit)
+-        rows = connection.execute(f"SELECT * FROM ventas{where} ORDER BY fecha_hora DESC, id DESC LIMIT ?", params)
+-        return [SaleRepository._assemble(connection, row) for row in rows]
++        params.extend((limit,offset))
++        rows = connection.execute(f"SELECT * FROM ventas{where} ORDER BY fecha_hora DESC, id DESC LIMIT ? OFFSET ?", params)
++        if include_details:return [SaleRepository._assemble(connection, row) for row in rows]
++        return [Sale(**{**{name:row[name] for name in Sale.__dataclass_fields__ if name!="detalles"},"detalles":[]}) for row in rows]
++    @staticmethod
++    def count(connection):return connection.execute("SELECT count(*) FROM ventas").fetchone()[0]
+ 
+     @staticmethod
+     def daily_summary(connection,start_utc,end_utc):
+diff --git a/ferreteria_core/services/purchases.py b/ferreteria_core/services/purchases.py
+index f6b11fd..4de3cbe 100644
+--- a/ferreteria_core/services/purchases.py
++++ b/ferreteria_core/services/purchases.py
+@@ -107,9 +107,13 @@ class PurchaseService:
+             return PurchaseRepository.get(connection,purchase_id)
+     def obtener(self,purchase_id):
+         with self.database.connect() as connection:return PurchaseRepository.get(connection,purchase_id)
+-    def listar(self,estado=None,limit=100):
++    def listar(self,estado=None,limit=100,offset=0):
+         if estado not in {None,"CONFIRMADA","CANCELADA"}:raise ValueError("Estado de compra inválido")
+-        with self.database.connect() as connection:return PurchaseRepository.list(connection,estado,limit)
++        if not isinstance(offset,int) or offset<0:raise ValueError("El desplazamiento no puede ser negativo")
++        with self.database.connect() as connection:return PurchaseRepository.list(connection,estado,limit,offset)
++    def contar(self,estado=None):
++        if estado not in {None,"CONFIRMADA","CANCELADA"}:raise ValueError("Estado de compra inválido")
++        with self.database.connect() as connection:return PurchaseRepository.count(connection,estado)
+     def cancelar(self,purchase_id):
+         with self.database.transaction() as connection:
+             purchase=PurchaseRepository.get(connection,purchase_id)
+diff --git a/ferreteria_core/services/sales.py b/ferreteria_core/services/sales.py
+index ad2d1c7..0ec5f49 100644
+--- a/ferreteria_core/services/sales.py
++++ b/ferreteria_core/services/sales.py
+@@ -84,11 +84,14 @@ class SalesService:
+         with self.database.connect() as connection:
+             return SaleRepository.get(connection, folio=folio.strip().upper())
+ 
+-    def ultimas_ventas(self, limit=20):
++    def ultimas_ventas(self, limit=20,offset=0):
+         if not isinstance(limit, int) or limit <= 0:
+             raise ValueError("El límite debe ser positivo")
++        if not isinstance(offset,int) or offset<0:raise ValueError("El desplazamiento no puede ser negativo")
+         with self.database.connect() as connection:
+-            return SaleRepository.list(connection, limit=limit)
++            return SaleRepository.list(connection,limit=limit,offset=offset,include_details=False)
++    def contar_ventas(self):
++        with self.database.connect() as connection:return SaleRepository.count(connection)
+ 
+     def ventas_por_rango(self, desde, hasta, limit=1000):
+         with self.database.connect() as connection:
+diff --git a/ferreteria_core/version.py b/ferreteria_core/version.py
+index c72e379..29a6c24 100644
+--- a/ferreteria_core/version.py
++++ b/ferreteria_core/version.py
+@@ -1 +1,4 @@
+-__version__ = "1.1.4"
++from edition import EDITION
++
++
++__version__ = EDITION.version
+diff --git a/ferreteria_gui/app.py b/ferreteria_gui/app.py
+index 5450c4e..d5bab9f 100644
+--- a/ferreteria_gui/app.py
++++ b/ferreteria_gui/app.py
+@@ -42,13 +42,14 @@ def _smoke_close(window,app,logger):
+     exit_code=0
+     try:
+         for index in range(window.stack.count()):window.nav.setCurrentRow(index);app.processEvents()
+-        if window.products.table.rowCount()==0 or window.inventory.table.rowCount()==0:raise RuntimeError("Productos o inventario no muestran datos")
+-        if window.history.table.rowCount()==0:raise RuntimeError("El historial no muestra ventas existentes")
++        clean_smoke=os.environ.get("PUNTO_VENTA_CLEAN_SMOKE_TEST")=="1"
++        if not clean_smoke and (window.products.table.rowCount()==0 or window.inventory.table.rowCount()==0):raise RuntimeError("Productos o inventario no muestran datos")
++        if not clean_smoke and window.history.table.rowCount()==0:raise RuntimeError("El historial no muestra ventas existentes")
+         if not window.business_name.text().strip():raise RuntimeError("El nombre del negocio está vacío")
+         product_headers=[window.products.table.horizontalHeaderItem(i).text() for i in range(window.products.table.columnCount())]
+         inventory_headers=[window.inventory.table.horizontalHeaderItem(i).text() for i in range(window.inventory.table.columnCount())]
+         expected_headers={"Precio proveedor","Ganancia %"} if EDITION.edition is Edition.FERRETERIA else {"Categoría","Costo","Stock mínimo"}
+-        if __version__!="1.1.4" or not expected_headers<=set(product_headers):raise RuntimeError("La GUI no corresponde a la edición/version esperada")
++        if __version__!=EDITION.version or not expected_headers<=set(product_headers):raise RuntimeError("La GUI no corresponde a la edición/version esperada")
+         if not window.history.summary_title.text() or window.pos.set_quantity_button.text().find("F10")<0:raise RuntimeError("Faltan funciones esenciales del POS")
+         if "Precio venta" not in inventory_headers:raise RuntimeError("Existencias no muestra precio de venta")
+         window.nav.setCurrentRow(0);window.pos.focus_scanner();app.processEvents()
+diff --git a/ferreteria_gui/main_window.py b/ferreteria_gui/main_window.py
+index d721da9..87e1a54 100644
+--- a/ferreteria_gui/main_window.py
++++ b/ferreteria_gui/main_window.py
+@@ -16,7 +16,7 @@ class MainWindow(QMainWindow):
+     def __init__(self,database,backup_root=None):
+         super().__init__(); self.setWindowTitle(APP_NAME); self.resize(1280,780); self.setMinimumSize(1000,650)
+         self.database=database;backup_root=backup_root or database.path.parent/"backups";self.backups=BackupService(database,backup_root);central=QWidget(); outer=QVBoxLayout(central);outer.setContentsMargins(0,0,0,0);header=QHBoxLayout();self.logo=QLabel();self.logo.setFixedSize(90,55);self.logo.setAlignment(Qt.AlignCenter);self.business_name=QLabel();self.business_name.setObjectName("businessName");header.addWidget(self.logo);header.addWidget(self.business_name);header.addStretch();outer.addLayout(header);root=QHBoxLayout(); self.nav=QListWidget(); self.nav.setFixedWidth(210); self.nav.addItems(["Punto de venta","Productos","Inventario","Historial de ventas","Configuración"])
+-        self.nav.clear();self.stack=QStackedWidget(); self.pos=PosPage(database);self.products=ProductsPage(database);self.inventory=InventoryPage(database);self.purchases=PurchasesPage(database) if PURCHASES_ENABLED else None;self.history=HistoryPage(database);self.settings=SettingsPage(database,backup_root);pages=[("Punto de venta",self.pos),("Productos y precios",self.products),("Existencias y movimientos",self.inventory)]
++        self.nav.clear();self.stack=QStackedWidget(); self.pos=PosPage(database);self.products=ProductsPage(database,auto_load=False);self.inventory=InventoryPage(database,auto_load=False);self.purchases=PurchasesPage(database,auto_refresh=False) if PURCHASES_ENABLED else None;self.history=HistoryPage(database,auto_refresh=False);self.settings=SettingsPage(database,backup_root);pages=[("Punto de venta",self.pos),("Productos y precios",self.products),("Existencias y movimientos",self.inventory)]
+         if self.purchases:pages.append(("Compras",self.purchases))
+         pages.extend([("Historial de ventas",self.history),("Configuración",self.settings)]);self.nav.addItems([label for label,_page in pages]);[self.stack.addWidget(page) for _label,page in pages];root.addWidget(self.nav);root.addWidget(self.stack,1);outer.addLayout(root,1);self.setCentralWidget(central);self.settings.settings_saved.connect(self._apply_settings);self.settings.restored.connect(self._refresh_all);self._apply_settings(BusinessConfigService(database).obtener())
+         self._current_index=0;self.nav.currentRowChanged.connect(self._navigate); self.nav.setCurrentRow(0)
+@@ -26,8 +26,8 @@ class MainWindow(QMainWindow):
+         self.stack.setCurrentIndex(index)
+         page=self.stack.currentWidget()
+         if page is self.pos:QTimer.singleShot(0,self.pos.focus_scanner)
+-        elif page in (self.products,self.inventory):page.reload();page.focus_search_deferred()
+-        elif page in (self.history,self.purchases) and page is not None:page.refresh()
++        elif page in (self.products,self.inventory):page.ensure_loaded();page.focus_search_deferred()
++        elif page in (self.history,self.purchases) and page is not None:page.ensure_loaded()
+         elif page is self.settings:page.load()
+     def _focus_scanner(self):self.nav.setCurrentRow(0); self.pos.focus_scanner()
+     def _focus_context(self):
+diff --git a/ferreteria_gui/pages.py b/ferreteria_gui/pages.py
+index d8108d8..db75724 100644
+--- a/ferreteria_gui/pages.py
++++ b/ferreteria_gui/pages.py
+@@ -223,8 +223,8 @@ class PosPage(QWidget):
+ 
+ class PaginatedProductsPage(QWidget):
+     FILTERS=[("Todos activos","TODOS"),("Inactivos","INACTIVOS"),("Con control de inventario","CON_CONTROL"),("Sin control de inventario","SIN_CONTROL"),("Unidad","UNIDAD"),("Granel","GRANEL"),("Con existencia","CON_EXISTENCIA"),("Sin existencia","SIN_EXISTENCIA"),("Con precio","CON_PRECIO"),("Sin precio","SIN_PRECIO"),("Con descripción","CON_DESCRIPCION"),("Sin descripción","SIN_DESCRIPCION"),("Truper","TRUPER"),("Externos","EXTERNOS"),("Requieren revisión","REVISION")]
+-    def __init__(self,database,title,headers,sort_columns,parent=None):
+-        super().__init__(parent); self.database=database; self.products=ProductService(database); self.queries=ProductQueryService(database); self.page=1; self.result=None; self.selection_buttons=[];self.sort_columns=sort_columns;self.sort_column="descripcion";self.sort_direction="ASC"
++    def __init__(self,database,title,headers,sort_columns,parent=None,auto_load=True):
++        super().__init__(parent); self.database=database; self.products=ProductService(database); self.queries=ProductQueryService(database); self.page=1; self.result=None; self.selection_buttons=[];self.sort_columns=sort_columns;self.sort_column="descripcion";self.sort_direction="ASC";self._loaded=False
+         root=QVBoxLayout(self); heading=QLabel(title); heading.setStyleSheet("font-size:24px;font-weight:bold"); root.addWidget(heading)
+         bar=QHBoxLayout(); self.query=QLineEdit(); self.query.setPlaceholderText("Buscar o escanear producto..."); search=QPushButton("Buscar");self.filter=QComboBox();filters=self.FILTERS if TRUPER_ENABLED else [item for item in self.FILTERS if item[1] not in {"TRUPER","EXTERNOS","REVISION"}];[self.filter.addItem(label,value) for label,value in filters];bar.addWidget(self.query,1);bar.addWidget(search);bar.addWidget(QLabel("Filtro:"));bar.addWidget(self.filter);root.addLayout(bar)
+         self.table=QTableWidget(0,len(headers)); self.table.setHorizontalHeaderLabels(headers); self.table.setEditTriggers(QTableWidget.NoEditTriggers); self.table.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows); self.table.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection); self.table.setAlternatingRowColors(True); self.table.horizontalHeader().setSectionResizeMode(QHeaderView.Interactive);self.table.horizontalHeader().setMinimumSectionSize(55);root.addWidget(self.table,1)
+@@ -232,7 +232,9 @@ class PaginatedProductsPage(QWidget):
+         for widget in (self.first,self.previous,self.page_label,self.next,self.last):pager.addWidget(widget)
+         pager.addStretch(); pager.addWidget(self.range_label); root.addLayout(pager)
+         self.table.horizontalHeader().setSortIndicatorShown(True);self.table.horizontalHeader().setSortIndicator(3,Qt.AscendingOrder);self.table.horizontalHeader().sectionClicked.connect(self._sort);search.clicked.connect(self._submit_search); self.query.returnPressed.connect(self._submit_search); self.query.textChanged.connect(self._term_changed);self.filter.currentIndexChanged.connect(self._filter_changed); self.first.clicked.connect(lambda:self.go_page(1)); self.previous.clicked.connect(lambda:self.go_page(self.page-1)); self.next.clicked.connect(lambda:self.go_page(self.page+1)); self.last.clicked.connect(self.go_last); self.table.itemSelectionChanged.connect(self._selection_changed)
+-        QTimer.singleShot(0,self.reload)
++        if auto_load:QTimer.singleShot(0,self.reload)
++    def ensure_loaded(self):
++        if not self._loaded:self.reload()
+     def _term_changed(self,text):
+         self.page=1; self.table.clearSelection(); self._selection_changed()
+         if not text.strip():self.reload()
+@@ -257,6 +259,7 @@ class PaginatedProductsPage(QWidget):
+             if self.result.exact_match and self.result.products:preserve_id=self.result.products[0].id
+             self._fill(self.result.products,preserve_id); self.page_label.setText(f"Página {self.result.page} de {self.result.pages}"); self.range_label.setText(f"Mostrando {self.result.start}-{self.result.end} de {self.result.total:,} productos")
+             self.first.setEnabled(self.page>1); self.previous.setEnabled(self.page>1); self.next.setEnabled(self.page<self.result.pages); self.last.setEnabled(self.page<self.result.pages)
++            self._loaded=True
+         except Exception as exc:show_error(self,"Error de búsqueda",exc)
+     def _fill(self,products,preserve_id=None):
+         self.table.clearSelection(); self.table.setRowCount(0); restore_row=None
+@@ -290,8 +293,8 @@ class PaginatedProductsPage(QWidget):
+ 
+ 
+ class LegacyProductsPage(PaginatedProductsPage):
+-    def __init__(self,database,parent=None):
+-        super().__init__(database,"PRODUCTOS Y PRECIOS",["Código Truper","Barcode","Clave","Descripción","Marca","Categoría","Tipo de venta","Precio","Activo"],["codigo_truper","codigo_barras","clave","descripcion","marca","categoria","tipo_venta","precio_venta","activo"],parent)
++    def __init__(self,database,parent=None,auto_load=True):
++        super().__init__(database,"PRODUCTOS Y PRECIOS",["Código Truper","Barcode","Clave","Descripción","Marca","Categoría","Tipo de venta","Precio","Activo"],["codigo_truper","codigo_barras","clave","descripcion","marca","categoria","tipo_venta","precio_venta","activo"],parent,auto_load)
+         self.table.setSelectionMode(QAbstractItemView.SelectionMode.ExtendedSelection);self.edit_session=ProductEditSession(database);self.edit_mode=False;self._filling=False
+         self.edit_banner=QLabel("MODO EDICIÓN DESACTIVADO");self.edit_banner.setAlignment(Qt.AlignCenter);self.edit_banner.setStyleSheet("font-size:16px;font-weight:bold;padding:8px;background:#e5e7eb");self.layout().insertWidget(1,self.edit_banner)
+         self.selected_label=QLabel("Seleccionados: 0");self.selected_label.setStyleSheet("font-weight:bold");self.layout().insertWidget(3,self.selected_label)
+@@ -394,12 +397,12 @@ class LegacyProductsPage(PaginatedProductsPage):
+ 
+ class ProductsPage(PaginatedProductsPage):
+     EDITABLE={3:"descripcion",5:"precio_proveedor",6:"porcentaje_ganancia",7:"precio_venta"}
+-    def __init__(self,database,parent=None):
++    def __init__(self,database,parent=None,auto_load=True):
+         if TRUPER_ENABLED:
+             headers=["Código","Barcode","Clave","Descripción","Tipo de venta","Precio proveedor","Ganancia %","Precio venta","Control inventario","Activo"];sorts=["codigo_truper","codigo_barras","clave","descripcion","tipo_venta","precio_proveedor","porcentaje_ganancia","precio_venta","controla_inventario","activo"]
+         else:
+             headers=["Código","Barcode","Descripción","Categoría","Costo","Precio venta","Existencia","Stock mínimo","Activo"];sorts=["clave","codigo_barras","descripcion","categoria_id","precio_proveedor","precio_venta","existencia","stock_minimo","activo"]
+-        super().__init__(database,"PRODUCTOS Y PRECIOS",headers,sorts,parent)
++        super().__init__(database,"PRODUCTOS Y PRECIOS",headers,sorts,parent,auto_load)
+         self.EDITABLE={3:"descripcion",5:"precio_proveedor",6:"porcentaje_ganancia",7:"precio_venta"} if TRUPER_ENABLED else {2:"descripcion",4:"precio_proveedor",5:"precio_venta"}
+         self._filling=False;self.table.setSelectionMode(QAbstractItemView.SelectionMode.ExtendedSelection);self.table.setEditTriggers(QAbstractItemView.EditTrigger.DoubleClicked|QAbstractItemView.EditTrigger.EditKeyPressed);self.table.setColumnWidth(3,330);self.table.verticalHeader().setDefaultSectionSize(38);self.table.setItemDelegate(ReadableEditDelegate(self.table));self.selected_label=QLabel("Seleccionados: 0");self.selected_label.setStyleSheet("font-weight:bold");self.layout().insertWidget(3,self.selected_label)
+         actions=QHBoxLayout();self.new_button=QPushButton("NUEVO  F1");self.modify_button=QPushButton("MODIFICAR  F3");self.delete_button=QPushButton("ELIMINAR  F6");self.import_button=QPushButton("IMPORTAR");self.more=QToolButton();self.more.setText("MÁS ACCIONES ▼");self.more.setPopupMode(QToolButton.InstantPopup)
+@@ -505,11 +508,11 @@ def _tipo_venta_label(product):
+ 
+ 
+ class InventoryPage(PaginatedProductsPage):
+-    def __init__(self,database,parent=None):
+-        super().__init__(database,"EXISTENCIAS Y MOVIMIENTOS",["Producto","Clave","Barcode","Precio venta","Existencia","Control inventario"],["descripcion","clave","codigo_barras","precio_venta","existencia","controla_inventario"],parent); self.inventory=InventoryService(database);self.table.setColumnWidth(0,360);actions=QHBoxLayout(); self.new_button=QPushButton("NUEVO  F1");self.entry=QPushButton("AGREGAR EXISTENCIA"); self.adjust=QPushButton("AJUSTAR EXISTENCIA");self.movements=QPushButton("VER MOVIMIENTOS")
++    def __init__(self,database,parent=None,auto_load=True):
++        super().__init__(database,"EXISTENCIAS Y MOVIMIENTOS",["Producto","Clave","Barcode","Precio venta","Existencia","Control inventario"],["descripcion","clave","codigo_barras","precio_venta","existencia","controla_inventario"],parent,auto_load); self.inventory=InventoryService(database);self.table.setColumnWidth(0,360);actions=QHBoxLayout(); self.new_button=QPushButton("NUEVO  F1");self.entry=QPushButton("AGREGAR EXISTENCIA"); self.adjust=QPushButton("AJUSTAR EXISTENCIA");self.movements=QPushButton("VER MOVIMIENTOS")
+         self.new_button.setProperty("class","action");actions.addWidget(self.new_button)
+         for button,icon in ((self.entry,QStyle.SP_ArrowUp),(self.adjust,QStyle.SP_BrowserReload),(self.movements,QStyle.SP_FileDialogContentsView)):button.setIcon(self.style().standardIcon(icon));button.setProperty("class","action");actions.addWidget(button); self.register_selection_button(button)
+-        actions.addStretch(); self.layout().insertLayout(1,actions);self.new_button.clicked.connect(self._new); self.entry.clicked.connect(self._entry); self.adjust.clicked.connect(self._adjust);self.movements.clicked.connect(self._movements);self.filter.setCurrentIndex(self.filter.findData("CON_CONTROL"))
++        actions.addStretch(); self.layout().insertLayout(1,actions);self.new_button.clicked.connect(self._new); self.entry.clicked.connect(self._entry); self.adjust.clicked.connect(self._adjust);self.movements.clicked.connect(self._movements);self.filter.blockSignals(True);self.filter.setCurrentIndex(self.filter.findData("CON_CONTROL"));self.filter.blockSignals(False)
+     def _new(self):
+         dialog=QuickProductDialog(self.database,parent=self)
+         if dialog.exec()==QDialog.DialogCode.Accepted:self.reload(preserve_id=dialog.product.id)
+@@ -593,21 +596,27 @@ def _adjust_product_stock(database,product,parent):
+ 
+ 
+ class HistoryPage(QWidget):
+-    def __init__(self,database,parent=None):
++    def __init__(self,database,parent=None,auto_refresh=True):
+         super().__init__(parent); self.sales=SalesService(database);self.summaries=DailySummaryService(database); self.tickets=TicketService(database,TICKET_ROOT); root=QVBoxLayout(self); heading=QLabel("HISTORIAL DE VENTAS"); heading.setStyleSheet("font-size:24px;font-weight:bold"); root.addWidget(heading)
+         summary_bar=QHBoxLayout();summary_bar.addWidget(QLabel("Resumen del día:"));self.summary_date=QDateEdit(QDate.currentDate());self.summary_date.setCalendarPopup(True);self.summary_date.setDisplayFormat("dd/MM/yyyy");summary_bar.addWidget(self.summary_date);refresh=QPushButton("Actualizar");summary_bar.addWidget(refresh);summary_bar.addStretch();root.addLayout(summary_bar)
+         self.summary_title=QLabel();self.summary_title.setStyleSheet("font-size:16px;font-weight:bold");self.net=QLabel();self.net.setStyleSheet("font-size:26px;font-weight:bold;color:#1877c9");self.summary_stats=QLabel();self.summary_stats.setWordWrap(True);root.addWidget(self.summary_title);root.addWidget(self.net);root.addWidget(self.summary_stats)
+         root.addWidget(QLabel("Productos vendidos"));self.sold_table=QTableWidget(0,5);self.sold_table.setHorizontalHeaderLabels(["Producto","Clave","Cantidad","Unidad","Importe"]);self.sold_table.setEditTriggers(QTableWidget.NoEditTriggers);self.sold_table.horizontalHeader().setStretchLastSection(True);self.sold_table.setMaximumHeight(220);root.addWidget(self.sold_table)
+-        root.addWidget(QLabel("Ventas recientes")); self.table=QTableWidget(0,5); self.table.setHorizontalHeaderLabels(["Folio","Fecha","Método","Total","Estado"]); self.table.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows); self.table.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection); self.table.setEditTriggers(QTableWidget.NoEditTriggers); self.table.horizontalHeader().setStretchLastSection(True); root.addWidget(self.table); self.open_button=QPushButton("Ver detalle"); self.open_button.setEnabled(False); root.addWidget(self.open_button,alignment=Qt.AlignRight); refresh.clicked.connect(self.refresh);self.summary_date.dateChanged.connect(lambda _date:self.refresh_summary()); self.open_button.clicked.connect(self.open_sale); self.table.doubleClicked.connect(self.open_sale); self.table.itemSelectionChanged.connect(lambda:self.open_button.setEnabled(self.table.currentRow()>=0)); self.refresh()
++        root.addWidget(QLabel("Ventas recientes")); self.table=QTableWidget(0,5); self.table.setHorizontalHeaderLabels(["Folio","Fecha","Método","Total","Estado"]); self.table.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows); self.table.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection); self.table.setEditTriggers(QTableWidget.NoEditTriggers); self.table.horizontalHeader().setStretchLastSection(True); root.addWidget(self.table);pager=QHBoxLayout();self.previous=QPushButton("< Anterior");self.next=QPushButton("Siguiente >");self.page_label=QLabel();pager.addWidget(self.previous);pager.addWidget(self.next);pager.addWidget(self.page_label);pager.addStretch();root.addLayout(pager);self.page=1;self.page_size=50; self.open_button=QPushButton("Ver detalle"); self.open_button.setEnabled(False); root.addWidget(self.open_button,alignment=Qt.AlignRight); refresh.clicked.connect(self.refresh);self.summary_date.dateChanged.connect(lambda _date:self.refresh_summary()); self.open_button.clicked.connect(self.open_sale); self.table.doubleClicked.connect(self.open_sale); self.table.itemSelectionChanged.connect(lambda:self.open_button.setEnabled(self.table.currentRow()>=0));self.previous.clicked.connect(lambda:self._go(self.page-1));self.next.clicked.connect(lambda:self._go(self.page+1));self._loaded=False
++        if auto_refresh:self.refresh()
++    def ensure_loaded(self):
++        if not self._loaded:self.refresh()
+     def refresh(self):
+         try:
+             self.refresh_summary()
+-            sales=self.sales.ultimas_ventas(100); self.table.setRowCount(0)
++            total=self.sales.contar_ventas();pages=max(1,(total+self.page_size-1)//self.page_size);self.page=min(self.page,pages);sales=self.sales.ultimas_ventas(self.page_size,(self.page-1)*self.page_size); self.table.setRowCount(0)
+             for sale in sales:
+                 row=self.table.rowCount(); self.table.insertRow(row); values=[sale.folio,sale.fecha_hora,sale.metodo_pago,moneda(sale.total_centavos),sale.estado]
+                 for col,value in enumerate(values):self.table.setItem(row,col,QTableWidgetItem(str(value)))
+                 self.table.item(row,0).setData(Qt.UserRole,sale.id)
++            self._loaded=True
++            self.page_label.setText(f"Página {self.page} de {pages} · {total} ventas");self.previous.setEnabled(self.page>1);self.next.setEnabled(self.page<pages)
+         except Exception as exc:show_error(self,"No se pudo cargar el historial",exc)
++    def _go(self,page):self.page=page;self.refresh()
+     def refresh_summary(self):
+         try:
+             day=self.summary_date.date().toPython();summary=self.summaries.obtener(day);self.summary_title.setText(f"RESUMEN DEL DÍA · {day:%d/%m/%Y}");self.net.setText(f"VENTA NETA  {moneda(summary.venta_neta_centavos)}")
+diff --git a/ferreteria_gui/purchases_page.py b/ferreteria_gui/purchases_page.py
+index 06a541e..17d961a 100644
+--- a/ferreteria_gui/purchases_page.py
++++ b/ferreteria_gui/purchases_page.py
+@@ -17,15 +17,23 @@ def purchase_presentation_options(presentations):
+ 
+ 
+ class PurchasesPage(QWidget):
+-    def __init__(self,database,parent=None):
++    def __init__(self,database,parent=None,auto_refresh=True):
+         super().__init__(parent);self.database=database;self.service=PurchaseService(database);root=QVBoxLayout(self);title=QLabel("COMPRAS / ENTRADAS");title.setObjectName("pageTitle");root.addWidget(title);actions=QHBoxLayout();self.new=QPushButton("NUEVA ENTRADA");suppliers=QPushButton("PROVEEDORES");presentations=QPushButton("PRESENTACIONES");actions.addWidget(self.new);actions.addWidget(suppliers);actions.addWidget(presentations);actions.addStretch();self.filter=QComboBox();self.filter.addItem("Todas",None);self.filter.addItem("Confirmadas","CONFIRMADA");self.filter.addItem("Canceladas","CANCELADA");actions.addWidget(self.filter);root.addLayout(actions)
+-        self.table=QTableWidget(0,6);self.table.setHorizontalHeaderLabels(["Folio","Fecha","Proveedor","Productos","Total","Estado"]);self.table.setEditTriggers(QTableWidget.NoEditTriggers);self.table.horizontalHeader().setStretchLastSection(True);root.addWidget(self.table);self.new.clicked.connect(self._new);suppliers.clicked.connect(lambda:CatalogManagerDialog(database,"supplier",self).exec());presentations.clicked.connect(lambda:CatalogManagerDialog(database,"presentation",self).exec());self.filter.currentIndexChanged.connect(self.refresh);self.table.cellDoubleClicked.connect(self._open);self.refresh()
++        self.table=QTableWidget(0,6);self.table.setHorizontalHeaderLabels(["Folio","Fecha","Proveedor","Productos","Total","Estado"]);self.table.setEditTriggers(QTableWidget.NoEditTriggers);self.table.horizontalHeader().setStretchLastSection(True);root.addWidget(self.table);pager=QHBoxLayout();self.previous=QPushButton("< Anterior");self.next=QPushButton("Siguiente >");self.page_label=QLabel();pager.addWidget(self.previous);pager.addWidget(self.next);pager.addWidget(self.page_label);pager.addStretch();root.addLayout(pager);self.page=1;self.page_size=50;self.new.clicked.connect(self._new);suppliers.clicked.connect(lambda:CatalogManagerDialog(database,"supplier",self).exec());presentations.clicked.connect(lambda:CatalogManagerDialog(database,"presentation",self).exec());self.filter.currentIndexChanged.connect(self._filter_changed);self.table.cellDoubleClicked.connect(self._open);self.previous.clicked.connect(lambda:self._go(self.page-1));self.next.clicked.connect(lambda:self._go(self.page+1));self._loaded=False
++        if auto_refresh:self.refresh()
++    def ensure_loaded(self):
++        if not self._loaded:self.refresh()
+     def refresh(self):
+         self.table.setRowCount(0)
+-        for purchase in self.service.listar(self.filter.currentData()):
++        total=self.service.contar(self.filter.currentData());pages=max(1,(total+self.page_size-1)//self.page_size);self.page=min(self.page,pages)
++        for purchase in self.service.listar(self.filter.currentData(),self.page_size,(self.page-1)*self.page_size):
+             row=self.table.rowCount();self.table.insertRow(row);values=(purchase["folio"],purchase["fecha"],purchase["proveedor_nombre_snapshot"] or "Sin proveedor",purchase["lineas"],moneda(purchase["total_centavos"]),purchase["estado"])
+             for col,value in enumerate(values):self.table.setItem(row,col,QTableWidgetItem(str(value)))
+             self.table.item(row,0).setData(Qt.UserRole,purchase["id"])
++        self._loaded=True
++        self.page_label.setText(f"Página {self.page} de {pages} · {total} compras");self.previous.setEnabled(self.page>1);self.next.setEnabled(self.page<pages)
++    def _filter_changed(self):self.page=1;self.refresh()
++    def _go(self,page):self.page=page;self.refresh()
+     def _new(self):
+         dialog=NewPurchaseDialog(self.database,self)
+         if dialog.exec()==QDialog.Accepted:self.refresh();QMessageBox.information(self,"Entrada confirmada",f"Compra {dialog.purchase.folio} registrada; inventario actualizado.")
+diff --git a/scripts/benchmark_general.py b/scripts/benchmark_general.py
+new file mode 100644
+index 0000000..324eec7
+--- /dev/null
++++ b/scripts/benchmark_general.py
+@@ -0,0 +1,79 @@
++"""Benchmark reproducible de GENERAL; crea y elimina exclusivamente una DB temporal."""
++import json
++import os
++import sqlite3
++import sys
++import tempfile
++import time
++import tracemalloc
++from datetime import date
++from decimal import Decimal
++from pathlib import Path
++
++os.environ["PUNTO_VENTA_EDITION"]="GENERAL"
++os.environ.setdefault("QT_QPA_PLATFORM","offscreen")
++sys.path.insert(0,str(Path(__file__).resolve().parent.parent))
++
++from PySide6.QtWidgets import QApplication
++from ferreteria_core import Database
++from ferreteria_core.repositories import ProductRepository,PurchaseRepository,SaleRepository
++from ferreteria_core.services import Cart,ProductQueryService,ProductService,SalesService,seed_general_categories,seed_general_purchase_presentations
++from ferreteria_gui.main_window import MainWindow
++
++
++PRODUCTS=5_000
++MOVEMENTS=20_000
++SALES=5_000
++PURCHASES=2_000
++
++
++def timed(call):
++    started=time.perf_counter();value=call();return round((time.perf_counter()-started)*1000,3),value
++
++
++def populate(database):
++    with database.transaction() as connection:
++        category=connection.execute("SELECT id FROM categorias ORDER BY id LIMIT 1").fetchone()[0]
++        supplier=connection.execute("INSERT INTO proveedores(nombre,nombre_normalizado) VALUES('Proveedor benchmark','proveedor benchmark')").lastrowid
++        piece=connection.execute("SELECT id FROM presentaciones_compra WHERE nombre_normalizado='pieza'").fetchone()[0]
++        products=[]
++        for index in range(1,PRODUCTS+1):
++            bulk=index%10==0
++            products.append((f"75{index:011d}",f"INT-{index:05d}",f"Producto benchmark {index:05d}",1000+index%500,1000,category,"GRANEL" if bulk else "UNIDAD","PESO" if bulk else None,1_000_000 if bulk else 0))
++        connection.executemany("""INSERT INTO productos(codigo_barras,clave,descripcion,precio_venta,existencia,categoria_id,tipo_venta,unidad_granel,existencia_granel_mg,es_truper,datos_completos,requiere_revision)
++            VALUES(?,?,?,?,?,?,?,?,?,0,1,0)""",products)
++        connection.executemany("""INSERT INTO movimientos_inventario(producto_id,tipo,cantidad,existencia_anterior,existencia_nueva,referencia,tipo_venta_snapshot)
++            VALUES(?,'AJUSTE',0,1000,1000,?,'UNIDAD')""",((index%PRODUCTS+1,f"BENCH-{index}") for index in range(MOVEMENTS)))
++        connection.executemany("""INSERT INTO ventas(id,folio,subtotal_centavos,total_centavos,metodo_pago,estado)
++            VALUES(?,?,1000,1000,'EFECTIVO','COMPLETADA')""",((index,f"V-{index:06d}") for index in range(1,SALES+1)))
++        connection.executemany("""INSERT INTO detalle_venta(venta_id,producto_id,descripcion_snapshot,cantidad,precio_unitario_centavos,subtotal_centavos)
++            VALUES(?,?,?,1,1000,1000)""",((index,index%PRODUCTS+1,f"Producto benchmark {index%PRODUCTS+1:05d}") for index in range(1,SALES+1)))
++        connection.executemany("""INSERT INTO compras(id,folio,proveedor_id,proveedor_nombre_snapshot,fecha,total_centavos)
++            VALUES(?,?,?,?,?,24000)""",((index,f"C-{index:06d}",supplier,"Proveedor benchmark",date.today().isoformat()) for index in range(1,PURCHASES+1)))
++        connection.executemany("""INSERT INTO compra_detalles(compra_id,producto_id,descripcion_snapshot,tipo_venta_snapshot,presentacion_id,presentacion_snapshot,cantidad_presentaciones,contenido_por_presentacion,cantidad_base,costo_presentacion_centavos,costo_unitario_centavos,subtotal_centavos,controla_inventario_snapshot)
++            VALUES(?,?,?,'UNIDAD',?,'Pieza','1',1,1,800,800,800,1)""",((index,index%PRODUCTS+1,f"Producto benchmark {index%PRODUCTS+1:05d}",piece) for index in range(1,PURCHASES+1)))
++
++
++def run():
++    with tempfile.TemporaryDirectory(prefix="pdv_general_benchmark_") as directory:
++        path=Path(directory)/"benchmark.sqlite3";database=Database(path)
++        backend_ms,_=timed(database.migrate);seed_general_categories(database);seed_general_purchase_presentations(database)
++        populate_ms,_=timed(lambda:populate(database));query=ProductQueryService(database);products=ProductService(database)
++        exact_barcode_ms,_=timed(lambda:query.buscar_inteligente("7500000000001",page_size=50))
++        exact_code_ms,_=timed(lambda:query.buscar_inteligente("INT-02500",page_size=50))
++        description_ms,description=timed(lambda:query.buscar_inteligente("benchmark 025",page_size=50))
++        cart=Cart(database);cart_ms,_=timed(lambda:cart.agregar_producto(1))
++        sale_ms,_=timed(lambda:SalesService(database).crear_venta([{"producto_id":1,"cantidad":1}],"EFECTIVO",efectivo_recibido=Decimal("20")))
++        products_page_ms,product_page=timed(lambda:query.buscar_inteligente(page=1,page_size=50))
++        inventory_page_ms,inventory_page=timed(lambda:query.buscar_inteligente(page=1,page_size=50,product_filter="CON_CONTROL",sort_column="existencia"))
++        with database.connect() as connection:
++            purchases_page_ms,purchases=timed(lambda:PurchaseRepository.list(connection,limit=50,offset=0))
++            history_page_ms,history=timed(lambda:SaleRepository.list(connection,limit=50,offset=0,include_details=False))
++            stock_ms,stock=timed(lambda:ProductRepository.get(connection,1))
++        tracemalloc.start();app=QApplication.instance() or QApplication([])
++        window_ms,window=timed(lambda:MainWindow(database));_current,_peak=tracemalloc.get_traced_memory();tracemalloc.stop();window.close();window.deleteLater();app.processEvents()
++        result={"database_bytes":path.stat().st_size,"rows":{"products":PRODUCTS,"movements":MOVEMENTS,"sales":SALES,"sale_details":SALES,"purchases":PURCHASES,"purchase_details":PURCHASES},"milliseconds":{"backend_initialization":backend_ms,"fixture_population":populate_ms,"app_window_construction":window_ms,"exact_barcode":exact_barcode_ms,"exact_code":exact_code_ms,"description":description_ms,"cart_add":cart_ms,"register_sale":sale_ms,"products_first_page":products_page_ms,"inventory_first_page":inventory_page_ms,"purchases_first_page":purchases_page_ms,"history_first_page":history_page_ms,"stock_lookup":stock_ms},"result_sizes":{"description":len(description.products),"products_page":len(product_page.products),"inventory_page":len(inventory_page.products),"purchases_page":len(purchases),"history_page":len(history),"stock":stock.existencia},"python_tracemalloc_peak_bytes_during_window":_peak}
++        print(json.dumps(result,ensure_ascii=False,indent=2))
++
++
++if __name__=="__main__":run()
+diff --git a/tests/test_phase4_pilot.py b/tests/test_phase4_pilot.py
+new file mode 100644
+index 0000000..2897151
+--- /dev/null
++++ b/tests/test_phase4_pilot.py
+@@ -0,0 +1,42 @@
++import json
++from decimal import Decimal
++
++import pytest
++
++from edition import Edition,get_edition_config
++from ferreteria_core import Database
++from ferreteria_core.services import (BackupService,BusinessConfigService,ProductService,PurchasePresentationService,
++    PurchaseService,SalesService,seed_general_categories,seed_general_purchase_presentations)
++from updater_core import load_package
++
++
++def test_versiones_independientes_por_edicion():
++    assert get_edition_config(Edition.FERRETERIA).version=="1.1.4"
++    assert get_edition_config(Edition.GENERAL).version=="0.9.0"
++
++
++def test_general_arranca_limpio_en_schema_10_y_crea_seeds(tmp_path):
++    database=Database(tmp_path/"clean"/"data"/"punto_venta.db");database.migrate();seed_general_categories(database);seed_general_purchase_presentations(database)
++    with database.connect() as connection:
++        assert connection.execute("SELECT max(version) FROM schema_migrations").fetchone()[0]==10
++        assert connection.execute("SELECT count(*) FROM categorias").fetchone()[0]>0
++        assert {row[0] for row in connection.execute("SELECT nombre FROM presentaciones_compra")}=={"Pieza","Caja","Paquete","Display"}
++
++
++def test_backup_restore_general_recupera_operacion_completa(tmp_path):
++    database=Database(tmp_path/"punto_venta.db");database.migrate();seed_general_categories(database);seed_general_purchase_presentations(database);config=get_edition_config(Edition.GENERAL)
++    product=ProductService(database,config).crear_producto_externo("7500000400001","Piloto",Decimal("25"),10,precio_proveedor=Decimal("10"));piece=next(item for item in PurchasePresentationService(database).listar_activas() if item.nombre=="Pieza")
++    purchase=PurchaseService(database).confirmar([PurchaseService(database).crear_linea(product.id,piece.id,5,1,Decimal("10"))]);sale=SalesService(database).crear_venta([{"producto_id":product.id,"cantidad":2}],"TARJETA");BusinessConfigService(database).guardar(nombre_negocio="Tienda piloto")
++    backup_service=BackupService(database,tmp_path/"backups");backup=backup_service.crear_manual()
++    ProductService(database,config).modificar_producto(product.id,descripcion="Alterado",tipo_venta="UNIDAD",precio_venta=Decimal("99"));SalesService(database).cancelar_venta(sale.id,"alteración")
++    backup_service.restaurar(backup);restored=ProductService(database,config).get(product.id)
++    assert restored.descripcion=="Piloto" and restored.precio_venta==2500 and restored.existencia==13
++    assert PurchaseService(database).obtener(purchase.id).estado=="CONFIRMADA" and SalesService(database).obtener_por_id(sale.id).estado=="COMPLETADA"
++    assert BusinessConfigService(database).obtener().nombre_negocio=="Tienda piloto"
++
++
++@pytest.mark.parametrize("name",["datos.sqlite","datos.SQLITE","datos.sqlite3","datos.SQLITE3"])
++def test_updater_rechaza_todas_las_extensiones_sqlite(tmp_path,name):
++    root=tmp_path/"package";payload=root/"payload";internal=payload/"_internal";internal.mkdir(parents=True);(payload/"PuntoDeVenta.exe").write_bytes(b"exe");(payload/name).write_bytes(b"db")
++    (root/"version.json").write_text(json.dumps({"version":"0.9.0","edition":"GENERAL","required_schema_min":10,"target_schema":10}),encoding="utf-8")
++    with pytest.raises(ValueError,match="base de datos"):load_package(root)
+diff --git a/updater_core.py b/updater_core.py
+index e8d47fb..5b38e32 100644
+--- a/updater_core.py
++++ b/updater_core.py
+@@ -18,6 +18,7 @@ from edition import Edition, parse_edition, get_edition_config
+ 
+ EXPECTED_TABLES={"productos","movimientos_inventario","ventas","detalle_venta","schema_migrations"}
+ PERSISTENT_NAMES={"data","tickets","backups","logs"}
++DATABASE_SUFFIXES={".db",".sqlite",".sqlite3"}
+ CURRENT_SCHEMA=10
+ 
+ 
+@@ -77,7 +78,7 @@ def load_package(root:Path)->Package:
+     data=json.loads(metadata.read_text(encoding="utf-8"));version=str(data.get("version") or "").strip()
+     if not version:raise ValueError("La versión del paquete está vacía")
+     if not (payload/"PuntoDeVenta.exe").is_file() or not (payload/"_internal").is_dir():raise ValueError("El paquete de aplicación está incompleto")
+-    if any(path.is_file() and path.suffix.lower()==".db" for path in payload.rglob("*")):raise ValueError("El paquete contiene una base de datos prohibida")
++    if any(path.is_file() and path.suffix.lower() in DATABASE_SUFFIXES for path in payload.rglob("*")):raise ValueError("El paquete contiene una base de datos prohibida")
+     if any((payload/name).exists() for name in PERSISTENT_NAMES):raise ValueError("El payload contiene carpetas de datos de usuario")
+     target=int(data.get("target_schema",data.get("schema_version",CURRENT_SCHEMA)))
+     required=int(data.get("required_schema_min",target))

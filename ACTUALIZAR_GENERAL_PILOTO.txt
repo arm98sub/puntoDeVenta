@@ -1,0 +1,11 @@
+ACTUALIZAR PUNTODEVENTA GENERAL PILOTO
+=====================================
+
+1. Cierre PuntoDeVenta General.
+2. Copie completa esta carpeta de actualización a la PC del negocio.
+3. Abra ActualizarPuntoDeVenta.exe.
+4. Confirme que la instalación detectada indica edición GENERAL.
+5. Pulse ACTUALIZAR y espere la confirmación.
+
+El actualizador rechaza paquetes de otra edición, crea un respaldo antes de
+cambiar archivos y no incluye ni sustituye data\punto_venta.db.

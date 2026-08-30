@@ -3,9 +3,10 @@ param([ValidateSet("FERRETERIA", "GENERAL")][string]$Edition = "FERRETERIA")
 $ErrorActionPreference="Stop"
 $Root=[System.IO.Path]::GetFullPath($PSScriptRoot)
 $Python=Join-Path $Root ".venv\Scripts\python.exe"
-$Stage=Join-Path $Root "build\gui_updater_1.1.4"
+$AppVersion=if ($Edition -eq "GENERAL") { "0.9.0" } else { "1.1.4" }
+$Stage=Join-Path $Root ("build\gui_updater_" + $AppVersion + "_" + $Edition)
 $PackageSuffix=if ($Edition -eq "GENERAL") { "_GENERAL" } else { "" }
-$Package=Join-Path $Root ("dist\PuntoDeVenta_Actualizacion_1.1.4" + $PackageSuffix)
+$Package=Join-Path $Root ("dist\PuntoDeVenta_Actualizacion_" + $AppVersion + $PackageSuffix)
 
 function Assert-SafeChild([string]$Path,[string]$Parent) {
     $child=[System.IO.Path]::GetFullPath($Path)
@@ -40,10 +41,12 @@ Copy-Item -LiteralPath (Join-Path $PosBuild "PuntoDeVenta.exe") -Destination (Jo
 Copy-Item -LiteralPath (Join-Path $PosBuild "_internal") -Destination (Join-Path $Package "payload") -Recurse
 $VersionData=Get-Content -LiteralPath (Join-Path $Root "version.json") -Raw | ConvertFrom-Json
 $VersionData.edition=$Edition
+$VersionData.version=$AppVersion
 $VersionData | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $Package "version.json") -Encoding utf8
-Copy-Item -LiteralPath (Join-Path $Root "ACTUALIZAR_PUNTO_DE_VENTA.txt") -Destination $Package
+$UpdateGuide=if ($Edition -eq "GENERAL") { "ACTUALIZAR_GENERAL_PILOTO.txt" } else { "ACTUALIZAR_PUNTO_DE_VENTA.txt" }
+Copy-Item -LiteralPath (Join-Path $Root $UpdateGuide) -Destination (Join-Path $Package "ACTUALIZAR_PUNTO_DE_VENTA.txt")
 
-$forbidden=Get-ChildItem -LiteralPath $Package -Recurse -File | Where-Object { $_.Name -eq "ferreteria.db" -or $_.Extension -eq ".db" }
+$forbidden=Get-ChildItem -LiteralPath $Package -Recurse -File | Where-Object { $_.Extension.ToLowerInvariant() -in @(".db",".sqlite",".sqlite3") }
 if ($forbidden) { throw "El paquete contiene una base de datos prohibida" }
 foreach ($name in @("data","tickets","backups","logs")) {
     if (Test-Path -LiteralPath (Join-Path $Package "payload\$name")) { throw "El payload contiene datos: $name" }

@@ -42,10 +42,13 @@ class PurchaseRepository:
         details=tuple(PurchaseDetail(**{name:(bool(item[name]) if name=="controla_inventario_snapshot" else item[name]) for name in PurchaseDetail.__dataclass_fields__}) for item in connection.execute("SELECT * FROM compra_detalles WHERE compra_id=? ORDER BY id",(purchase_id,)))
         return Purchase(row["id"],row["folio"],row["proveedor_id"],row["proveedor_nombre_snapshot"],row["folio_proveedor"],row["fecha"],row["estado"],row["total_centavos"],row["notas"],details)
     @staticmethod
-    def list(connection,state=None,limit=100):
-        where=" WHERE estado=?" if state else "";params=(state,limit) if state else (limit,)
-        rows=connection.execute(f"SELECT *,(SELECT count(*) FROM compra_detalles d WHERE d.compra_id=compras.id) lineas FROM compras{where} ORDER BY fecha DESC,id DESC LIMIT ?",params)
+    def list(connection,state=None,limit=100,offset=0):
+        where=" WHERE estado=?" if state else "";params=(state,limit,offset) if state else (limit,offset)
+        rows=connection.execute(f"SELECT *,(SELECT count(*) FROM compra_detalles d WHERE d.compra_id=compras.id) lineas FROM compras{where} ORDER BY fecha DESC,id DESC LIMIT ? OFFSET ?",params)
         return [dict(row) for row in rows]
+    @staticmethod
+    def count(connection,state=None):
+        return connection.execute("SELECT count(*) FROM compras"+(" WHERE estado=?" if state else ""),((state,) if state else ())).fetchone()[0]
     @staticmethod
     def cancel(connection,purchase_id):
         cursor=connection.execute("UPDATE compras SET estado='CANCELADA',updated_at=strftime('%Y-%m-%dT%H:%M:%fZ','now') WHERE id=? AND estado='CONFIRMADA'",(purchase_id,))

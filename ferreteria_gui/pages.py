@@ -223,8 +223,8 @@ class PosPage(QWidget):
 
 class PaginatedProductsPage(QWidget):
     FILTERS=[("Todos activos","TODOS"),("Inactivos","INACTIVOS"),("Con control de inventario","CON_CONTROL"),("Sin control de inventario","SIN_CONTROL"),("Unidad","UNIDAD"),("Granel","GRANEL"),("Con existencia","CON_EXISTENCIA"),("Sin existencia","SIN_EXISTENCIA"),("Con precio","CON_PRECIO"),("Sin precio","SIN_PRECIO"),("Con descripción","CON_DESCRIPCION"),("Sin descripción","SIN_DESCRIPCION"),("Truper","TRUPER"),("Externos","EXTERNOS"),("Requieren revisión","REVISION")]
-    def __init__(self,database,title,headers,sort_columns,parent=None):
-        super().__init__(parent); self.database=database; self.products=ProductService(database); self.queries=ProductQueryService(database); self.page=1; self.result=None; self.selection_buttons=[];self.sort_columns=sort_columns;self.sort_column="descripcion";self.sort_direction="ASC"
+    def __init__(self,database,title,headers,sort_columns,parent=None,auto_load=True):
+        super().__init__(parent); self.database=database; self.products=ProductService(database); self.queries=ProductQueryService(database); self.page=1; self.result=None; self.selection_buttons=[];self.sort_columns=sort_columns;self.sort_column="descripcion";self.sort_direction="ASC";self._loaded=False
         root=QVBoxLayout(self); heading=QLabel(title); heading.setStyleSheet("font-size:24px;font-weight:bold"); root.addWidget(heading)
         bar=QHBoxLayout(); self.query=QLineEdit(); self.query.setPlaceholderText("Buscar o escanear producto..."); search=QPushButton("Buscar");self.filter=QComboBox();filters=self.FILTERS if TRUPER_ENABLED else [item for item in self.FILTERS if item[1] not in {"TRUPER","EXTERNOS","REVISION"}];[self.filter.addItem(label,value) for label,value in filters];bar.addWidget(self.query,1);bar.addWidget(search);bar.addWidget(QLabel("Filtro:"));bar.addWidget(self.filter);root.addLayout(bar)
         self.table=QTableWidget(0,len(headers)); self.table.setHorizontalHeaderLabels(headers); self.table.setEditTriggers(QTableWidget.NoEditTriggers); self.table.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows); self.table.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection); self.table.setAlternatingRowColors(True); self.table.horizontalHeader().setSectionResizeMode(QHeaderView.Interactive);self.table.horizontalHeader().setMinimumSectionSize(55);root.addWidget(self.table,1)
@@ -232,7 +232,9 @@ class PaginatedProductsPage(QWidget):
         for widget in (self.first,self.previous,self.page_label,self.next,self.last):pager.addWidget(widget)
         pager.addStretch(); pager.addWidget(self.range_label); root.addLayout(pager)
         self.table.horizontalHeader().setSortIndicatorShown(True);self.table.horizontalHeader().setSortIndicator(3,Qt.AscendingOrder);self.table.horizontalHeader().sectionClicked.connect(self._sort);search.clicked.connect(self._submit_search); self.query.returnPressed.connect(self._submit_search); self.query.textChanged.connect(self._term_changed);self.filter.currentIndexChanged.connect(self._filter_changed); self.first.clicked.connect(lambda:self.go_page(1)); self.previous.clicked.connect(lambda:self.go_page(self.page-1)); self.next.clicked.connect(lambda:self.go_page(self.page+1)); self.last.clicked.connect(self.go_last); self.table.itemSelectionChanged.connect(self._selection_changed)
-        QTimer.singleShot(0,self.reload)
+        if auto_load:QTimer.singleShot(0,self.reload)
+    def ensure_loaded(self):
+        if not self._loaded:self.reload()
     def _term_changed(self,text):
         self.page=1; self.table.clearSelection(); self._selection_changed()
         if not text.strip():self.reload()
@@ -257,6 +259,7 @@ class PaginatedProductsPage(QWidget):
             if self.result.exact_match and self.result.products:preserve_id=self.result.products[0].id
             self._fill(self.result.products,preserve_id); self.page_label.setText(f"Página {self.result.page} de {self.result.pages}"); self.range_label.setText(f"Mostrando {self.result.start}-{self.result.end} de {self.result.total:,} productos")
             self.first.setEnabled(self.page>1); self.previous.setEnabled(self.page>1); self.next.setEnabled(self.page<self.result.pages); self.last.setEnabled(self.page<self.result.pages)
+            self._loaded=True
         except Exception as exc:show_error(self,"Error de búsqueda",exc)
     def _fill(self,products,preserve_id=None):
         self.table.clearSelection(); self.table.setRowCount(0); restore_row=None
@@ -290,8 +293,8 @@ class PaginatedProductsPage(QWidget):
 
 
 class LegacyProductsPage(PaginatedProductsPage):
-    def __init__(self,database,parent=None):
-        super().__init__(database,"PRODUCTOS Y PRECIOS",["Código Truper","Barcode","Clave","Descripción","Marca","Categoría","Tipo de venta","Precio","Activo"],["codigo_truper","codigo_barras","clave","descripcion","marca","categoria","tipo_venta","precio_venta","activo"],parent)
+    def __init__(self,database,parent=None,auto_load=True):
+        super().__init__(database,"PRODUCTOS Y PRECIOS",["Código Truper","Barcode","Clave","Descripción","Marca","Categoría","Tipo de venta","Precio","Activo"],["codigo_truper","codigo_barras","clave","descripcion","marca","categoria","tipo_venta","precio_venta","activo"],parent,auto_load)
         self.table.setSelectionMode(QAbstractItemView.SelectionMode.ExtendedSelection);self.edit_session=ProductEditSession(database);self.edit_mode=False;self._filling=False
         self.edit_banner=QLabel("MODO EDICIÓN DESACTIVADO");self.edit_banner.setAlignment(Qt.AlignCenter);self.edit_banner.setStyleSheet("font-size:16px;font-weight:bold;padding:8px;background:#e5e7eb");self.layout().insertWidget(1,self.edit_banner)
         self.selected_label=QLabel("Seleccionados: 0");self.selected_label.setStyleSheet("font-weight:bold");self.layout().insertWidget(3,self.selected_label)
@@ -394,12 +397,12 @@ class LegacyProductsPage(PaginatedProductsPage):
 
 class ProductsPage(PaginatedProductsPage):
     EDITABLE={3:"descripcion",5:"precio_proveedor",6:"porcentaje_ganancia",7:"precio_venta"}
-    def __init__(self,database,parent=None):
+    def __init__(self,database,parent=None,auto_load=True):
         if TRUPER_ENABLED:
             headers=["Código","Barcode","Clave","Descripción","Tipo de venta","Precio proveedor","Ganancia %","Precio venta","Control inventario","Activo"];sorts=["codigo_truper","codigo_barras","clave","descripcion","tipo_venta","precio_proveedor","porcentaje_ganancia","precio_venta","controla_inventario","activo"]
         else:
             headers=["Código","Barcode","Descripción","Categoría","Costo","Precio venta","Existencia","Stock mínimo","Activo"];sorts=["clave","codigo_barras","descripcion","categoria_id","precio_proveedor","precio_venta","existencia","stock_minimo","activo"]
-        super().__init__(database,"PRODUCTOS Y PRECIOS",headers,sorts,parent)
+        super().__init__(database,"PRODUCTOS Y PRECIOS",headers,sorts,parent,auto_load)
         self.EDITABLE={3:"descripcion",5:"precio_proveedor",6:"porcentaje_ganancia",7:"precio_venta"} if TRUPER_ENABLED else {2:"descripcion",4:"precio_proveedor",5:"precio_venta"}
         self._filling=False;self.table.setSelectionMode(QAbstractItemView.SelectionMode.ExtendedSelection);self.table.setEditTriggers(QAbstractItemView.EditTrigger.DoubleClicked|QAbstractItemView.EditTrigger.EditKeyPressed);self.table.setColumnWidth(3,330);self.table.verticalHeader().setDefaultSectionSize(38);self.table.setItemDelegate(ReadableEditDelegate(self.table));self.selected_label=QLabel("Seleccionados: 0");self.selected_label.setStyleSheet("font-weight:bold");self.layout().insertWidget(3,self.selected_label)
         actions=QHBoxLayout();self.new_button=QPushButton("NUEVO  F1");self.modify_button=QPushButton("MODIFICAR  F3");self.delete_button=QPushButton("ELIMINAR  F6");self.import_button=QPushButton("IMPORTAR");self.more=QToolButton();self.more.setText("MÁS ACCIONES ▼");self.more.setPopupMode(QToolButton.InstantPopup)
@@ -505,11 +508,11 @@ def _tipo_venta_label(product):
 
 
 class InventoryPage(PaginatedProductsPage):
-    def __init__(self,database,parent=None):
-        super().__init__(database,"EXISTENCIAS Y MOVIMIENTOS",["Producto","Clave","Barcode","Precio venta","Existencia","Control inventario"],["descripcion","clave","codigo_barras","precio_venta","existencia","controla_inventario"],parent); self.inventory=InventoryService(database);self.table.setColumnWidth(0,360);actions=QHBoxLayout(); self.new_button=QPushButton("NUEVO  F1");self.entry=QPushButton("AGREGAR EXISTENCIA"); self.adjust=QPushButton("AJUSTAR EXISTENCIA");self.movements=QPushButton("VER MOVIMIENTOS")
+    def __init__(self,database,parent=None,auto_load=True):
+        super().__init__(database,"EXISTENCIAS Y MOVIMIENTOS",["Producto","Clave","Barcode","Precio venta","Existencia","Control inventario"],["descripcion","clave","codigo_barras","precio_venta","existencia","controla_inventario"],parent,auto_load); self.inventory=InventoryService(database);self.table.setColumnWidth(0,360);actions=QHBoxLayout(); self.new_button=QPushButton("NUEVO  F1");self.entry=QPushButton("AGREGAR EXISTENCIA"); self.adjust=QPushButton("AJUSTAR EXISTENCIA");self.movements=QPushButton("VER MOVIMIENTOS")
         self.new_button.setProperty("class","action");actions.addWidget(self.new_button)
         for button,icon in ((self.entry,QStyle.SP_ArrowUp),(self.adjust,QStyle.SP_BrowserReload),(self.movements,QStyle.SP_FileDialogContentsView)):button.setIcon(self.style().standardIcon(icon));button.setProperty("class","action");actions.addWidget(button); self.register_selection_button(button)
-        actions.addStretch(); self.layout().insertLayout(1,actions);self.new_button.clicked.connect(self._new); self.entry.clicked.connect(self._entry); self.adjust.clicked.connect(self._adjust);self.movements.clicked.connect(self._movements);self.filter.setCurrentIndex(self.filter.findData("CON_CONTROL"))
+        actions.addStretch(); self.layout().insertLayout(1,actions);self.new_button.clicked.connect(self._new); self.entry.clicked.connect(self._entry); self.adjust.clicked.connect(self._adjust);self.movements.clicked.connect(self._movements);self.filter.blockSignals(True);self.filter.setCurrentIndex(self.filter.findData("CON_CONTROL"));self.filter.blockSignals(False)
     def _new(self):
         dialog=QuickProductDialog(self.database,parent=self)
         if dialog.exec()==QDialog.DialogCode.Accepted:self.reload(preserve_id=dialog.product.id)
@@ -593,21 +596,27 @@ def _adjust_product_stock(database,product,parent):
 
 
 class HistoryPage(QWidget):
-    def __init__(self,database,parent=None):
+    def __init__(self,database,parent=None,auto_refresh=True):
         super().__init__(parent); self.sales=SalesService(database);self.summaries=DailySummaryService(database); self.tickets=TicketService(database,TICKET_ROOT); root=QVBoxLayout(self); heading=QLabel("HISTORIAL DE VENTAS"); heading.setStyleSheet("font-size:24px;font-weight:bold"); root.addWidget(heading)
         summary_bar=QHBoxLayout();summary_bar.addWidget(QLabel("Resumen del día:"));self.summary_date=QDateEdit(QDate.currentDate());self.summary_date.setCalendarPopup(True);self.summary_date.setDisplayFormat("dd/MM/yyyy");summary_bar.addWidget(self.summary_date);refresh=QPushButton("Actualizar");summary_bar.addWidget(refresh);summary_bar.addStretch();root.addLayout(summary_bar)
         self.summary_title=QLabel();self.summary_title.setStyleSheet("font-size:16px;font-weight:bold");self.net=QLabel();self.net.setStyleSheet("font-size:26px;font-weight:bold;color:#1877c9");self.summary_stats=QLabel();self.summary_stats.setWordWrap(True);root.addWidget(self.summary_title);root.addWidget(self.net);root.addWidget(self.summary_stats)
         root.addWidget(QLabel("Productos vendidos"));self.sold_table=QTableWidget(0,5);self.sold_table.setHorizontalHeaderLabels(["Producto","Clave","Cantidad","Unidad","Importe"]);self.sold_table.setEditTriggers(QTableWidget.NoEditTriggers);self.sold_table.horizontalHeader().setStretchLastSection(True);self.sold_table.setMaximumHeight(220);root.addWidget(self.sold_table)
-        root.addWidget(QLabel("Ventas recientes")); self.table=QTableWidget(0,5); self.table.setHorizontalHeaderLabels(["Folio","Fecha","Método","Total","Estado"]); self.table.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows); self.table.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection); self.table.setEditTriggers(QTableWidget.NoEditTriggers); self.table.horizontalHeader().setStretchLastSection(True); root.addWidget(self.table); self.open_button=QPushButton("Ver detalle"); self.open_button.setEnabled(False); root.addWidget(self.open_button,alignment=Qt.AlignRight); refresh.clicked.connect(self.refresh);self.summary_date.dateChanged.connect(lambda _date:self.refresh_summary()); self.open_button.clicked.connect(self.open_sale); self.table.doubleClicked.connect(self.open_sale); self.table.itemSelectionChanged.connect(lambda:self.open_button.setEnabled(self.table.currentRow()>=0)); self.refresh()
+        root.addWidget(QLabel("Ventas recientes")); self.table=QTableWidget(0,5); self.table.setHorizontalHeaderLabels(["Folio","Fecha","Método","Total","Estado"]); self.table.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows); self.table.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection); self.table.setEditTriggers(QTableWidget.NoEditTriggers); self.table.horizontalHeader().setStretchLastSection(True); root.addWidget(self.table);pager=QHBoxLayout();self.previous=QPushButton("< Anterior");self.next=QPushButton("Siguiente >");self.page_label=QLabel();pager.addWidget(self.previous);pager.addWidget(self.next);pager.addWidget(self.page_label);pager.addStretch();root.addLayout(pager);self.page=1;self.page_size=50; self.open_button=QPushButton("Ver detalle"); self.open_button.setEnabled(False); root.addWidget(self.open_button,alignment=Qt.AlignRight); refresh.clicked.connect(self.refresh);self.summary_date.dateChanged.connect(lambda _date:self.refresh_summary()); self.open_button.clicked.connect(self.open_sale); self.table.doubleClicked.connect(self.open_sale); self.table.itemSelectionChanged.connect(lambda:self.open_button.setEnabled(self.table.currentRow()>=0));self.previous.clicked.connect(lambda:self._go(self.page-1));self.next.clicked.connect(lambda:self._go(self.page+1));self._loaded=False
+        if auto_refresh:self.refresh()
+    def ensure_loaded(self):
+        if not self._loaded:self.refresh()
     def refresh(self):
         try:
             self.refresh_summary()
-            sales=self.sales.ultimas_ventas(100); self.table.setRowCount(0)
+            total=self.sales.contar_ventas();pages=max(1,(total+self.page_size-1)//self.page_size);self.page=min(self.page,pages);sales=self.sales.ultimas_ventas(self.page_size,(self.page-1)*self.page_size); self.table.setRowCount(0)
             for sale in sales:
                 row=self.table.rowCount(); self.table.insertRow(row); values=[sale.folio,sale.fecha_hora,sale.metodo_pago,moneda(sale.total_centavos),sale.estado]
                 for col,value in enumerate(values):self.table.setItem(row,col,QTableWidgetItem(str(value)))
                 self.table.item(row,0).setData(Qt.UserRole,sale.id)
+            self._loaded=True
+            self.page_label.setText(f"Página {self.page} de {pages} · {total} ventas");self.previous.setEnabled(self.page>1);self.next.setEnabled(self.page<pages)
         except Exception as exc:show_error(self,"No se pudo cargar el historial",exc)
+    def _go(self,page):self.page=page;self.refresh()
     def refresh_summary(self):
         try:
             day=self.summary_date.date().toPython();summary=self.summaries.obtener(day);self.summary_title.setText(f"RESUMEN DEL DÍA · {day:%d/%m/%Y}");self.net.setText(f"VENTA NETA  {moneda(summary.venta_neta_centavos)}")

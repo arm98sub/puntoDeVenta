@@ -17,15 +17,23 @@ def purchase_presentation_options(presentations):
 
 
 class PurchasesPage(QWidget):
-    def __init__(self,database,parent=None):
+    def __init__(self,database,parent=None,auto_refresh=True):
         super().__init__(parent);self.database=database;self.service=PurchaseService(database);root=QVBoxLayout(self);title=QLabel("COMPRAS / ENTRADAS");title.setObjectName("pageTitle");root.addWidget(title);actions=QHBoxLayout();self.new=QPushButton("NUEVA ENTRADA");suppliers=QPushButton("PROVEEDORES");presentations=QPushButton("PRESENTACIONES");actions.addWidget(self.new);actions.addWidget(suppliers);actions.addWidget(presentations);actions.addStretch();self.filter=QComboBox();self.filter.addItem("Todas",None);self.filter.addItem("Confirmadas","CONFIRMADA");self.filter.addItem("Canceladas","CANCELADA");actions.addWidget(self.filter);root.addLayout(actions)
-        self.table=QTableWidget(0,6);self.table.setHorizontalHeaderLabels(["Folio","Fecha","Proveedor","Productos","Total","Estado"]);self.table.setEditTriggers(QTableWidget.NoEditTriggers);self.table.horizontalHeader().setStretchLastSection(True);root.addWidget(self.table);self.new.clicked.connect(self._new);suppliers.clicked.connect(lambda:CatalogManagerDialog(database,"supplier",self).exec());presentations.clicked.connect(lambda:CatalogManagerDialog(database,"presentation",self).exec());self.filter.currentIndexChanged.connect(self.refresh);self.table.cellDoubleClicked.connect(self._open);self.refresh()
+        self.table=QTableWidget(0,6);self.table.setHorizontalHeaderLabels(["Folio","Fecha","Proveedor","Productos","Total","Estado"]);self.table.setEditTriggers(QTableWidget.NoEditTriggers);self.table.horizontalHeader().setStretchLastSection(True);root.addWidget(self.table);pager=QHBoxLayout();self.previous=QPushButton("< Anterior");self.next=QPushButton("Siguiente >");self.page_label=QLabel();pager.addWidget(self.previous);pager.addWidget(self.next);pager.addWidget(self.page_label);pager.addStretch();root.addLayout(pager);self.page=1;self.page_size=50;self.new.clicked.connect(self._new);suppliers.clicked.connect(lambda:CatalogManagerDialog(database,"supplier",self).exec());presentations.clicked.connect(lambda:CatalogManagerDialog(database,"presentation",self).exec());self.filter.currentIndexChanged.connect(self._filter_changed);self.table.cellDoubleClicked.connect(self._open);self.previous.clicked.connect(lambda:self._go(self.page-1));self.next.clicked.connect(lambda:self._go(self.page+1));self._loaded=False
+        if auto_refresh:self.refresh()
+    def ensure_loaded(self):
+        if not self._loaded:self.refresh()
     def refresh(self):
         self.table.setRowCount(0)
-        for purchase in self.service.listar(self.filter.currentData()):
+        total=self.service.contar(self.filter.currentData());pages=max(1,(total+self.page_size-1)//self.page_size);self.page=min(self.page,pages)
+        for purchase in self.service.listar(self.filter.currentData(),self.page_size,(self.page-1)*self.page_size):
             row=self.table.rowCount();self.table.insertRow(row);values=(purchase["folio"],purchase["fecha"],purchase["proveedor_nombre_snapshot"] or "Sin proveedor",purchase["lineas"],moneda(purchase["total_centavos"]),purchase["estado"])
             for col,value in enumerate(values):self.table.setItem(row,col,QTableWidgetItem(str(value)))
             self.table.item(row,0).setData(Qt.UserRole,purchase["id"])
+        self._loaded=True
+        self.page_label.setText(f"Página {self.page} de {pages} · {total} compras");self.previous.setEnabled(self.page>1);self.next.setEnabled(self.page<pages)
+    def _filter_changed(self):self.page=1;self.refresh()
+    def _go(self,page):self.page=page;self.refresh()
     def _new(self):
         dialog=NewPurchaseDialog(self.database,self)
         if dialog.exec()==QDialog.Accepted:self.refresh();QMessageBox.information(self,"Entrada confirmada",f"Compra {dialog.purchase.folio} registrada; inventario actualizado.")

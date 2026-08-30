@@ -84,11 +84,14 @@ class SalesService:
         with self.database.connect() as connection:
             return SaleRepository.get(connection, folio=folio.strip().upper())
 
-    def ultimas_ventas(self, limit=20):
+    def ultimas_ventas(self, limit=20,offset=0):
         if not isinstance(limit, int) or limit <= 0:
             raise ValueError("El límite debe ser positivo")
+        if not isinstance(offset,int) or offset<0:raise ValueError("El desplazamiento no puede ser negativo")
         with self.database.connect() as connection:
-            return SaleRepository.list(connection, limit=limit)
+            return SaleRepository.list(connection,limit=limit,offset=offset,include_details=False)
+    def contar_ventas(self):
+        with self.database.connect() as connection:return SaleRepository.count(connection)
 
     def ventas_por_rango(self, desde, hasta, limit=1000):
         with self.database.connect() as connection:

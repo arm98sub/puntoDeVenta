@@ -1,1 +1,4 @@
-__version__ = "1.1.4"
+from edition import EDITION
+
+
+__version__ = EDITION.version
