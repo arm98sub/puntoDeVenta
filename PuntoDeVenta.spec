@@ -1,6 +1,11 @@
+import os
 from pathlib import Path
 
+from pyinstaller_edition import write_edition_runtime_hook
+
 root = Path(SPECPATH).resolve()
+runtime_edition = os.environ.get("PUNTO_VENTA_EDITION", "FERRETERIA")
+edition_hook = write_edition_runtime_hook(root, runtime_edition)
 
 a = Analysis(
     [str(root / "pos_app.py")],
@@ -10,7 +15,7 @@ a = Analysis(
     hiddenimports=[],
     hookspath=[],
     hooksconfig={},
-    runtime_hooks=[],
+    runtime_hooks=[str(edition_hook)],
     excludes=["truper_catalog", "pdfplumber", "bs4", "requests", "pytest"],
     noarchive=False,
     optimize=1,

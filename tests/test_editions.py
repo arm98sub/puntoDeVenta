@@ -1,4 +1,5 @@
 import json
+import runpy
 from pathlib import Path
 
 import pytest
@@ -6,6 +7,7 @@ import pytest
 from edition import Edition, get_edition_config, resolve_database_path
 from ferreteria_core import Database
 from updater_core import apply_update, load_package, read_installed_edition, validate_installation
+from pyinstaller_edition import write_edition_runtime_hook
 
 
 def _installation(root: Path, edition: Edition):
@@ -28,6 +30,22 @@ def test_ferreteria_conserva_identidad_y_ruta_actual():
 
 def test_sin_configuracion_selecciona_ferreteria():
     assert get_edition_config(environ={}).edition is Edition.FERRETERIA
+
+
+def test_codigo_fuente_conserva_seleccion_por_variable_de_entorno():
+    assert get_edition_config(environ={"PUNTO_VENTA_EDITION":"GENERAL"}).edition is Edition.GENERAL
+
+
+@pytest.mark.parametrize("edition",[Edition.GENERAL,Edition.FERRETERIA])
+def test_runtime_hook_fija_la_edicion_del_build(tmp_path,monkeypatch,edition):
+    monkeypatch.setenv("PUNTO_VENTA_EDITION",Edition.FERRETERIA.value if edition is Edition.GENERAL else Edition.GENERAL.value)
+    hook=write_edition_runtime_hook(tmp_path,edition.value)
+    runpy.run_path(str(hook))
+    assert get_edition_config().edition is edition
+
+
+def test_runtime_hook_rechaza_edicion_de_build_invalida(tmp_path):
+    with pytest.raises(ValueError,match="no válida"):write_edition_runtime_hook(tmp_path,"OTRA")
 
 
 def test_rutas_de_base_por_edicion(tmp_path):
