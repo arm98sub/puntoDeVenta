@@ -11,7 +11,7 @@ from PySide6.QtWidgets import QAbstractItemView, QApplication, QDialog, QLabel
 
 from ferreteria_core import Database
 from edition import Edition,get_edition_config
-from ferreteria_core.services import ProductService
+from ferreteria_core.services import ProductQueryService,ProductService,SalesService
 from ferreteria_gui.pages import HistoryPage, InventoryPage, PosPage, ProductsPage
 from ferreteria_gui.purchases_page import PurchasesPage
 from ferreteria_gui.dialogs import PaymentDialog,ProductModifyDialog,QuickProductDialog
@@ -64,6 +64,32 @@ def test_general_oculta_truper_en_alta_y_modificacion(app,db,monkeypatch):
     assert modify.form.labelForField(modify.sale).text()=="Precio por kg: $"
     modify.bulk_unit.setCurrentIndex(modify.bulk_unit.findData("VOLUMEN"));app.processEvents();assert modify.form.labelForField(modify.sale).text()=="Precio por L: $"
     modify.kind.setCurrentText("UNIDAD");app.processEvents();assert modify.form.labelForField(modify.bulk_unit).isHidden() and modify.bulk_unit.isHidden() and modify.variable.isEnabled()
+
+
+@pytest.mark.parametrize("kind,barcode,key,stock",[("UNIDAD","COCACOLA","123","5"),("GRANEL","AZUCARGRANEL","GR-123","2.500")])
+def test_general_alta_desde_pos_selecciona_externo_por_dato_y_persiste(app,db,monkeypatch,kind,barcode,key,stock):
+    monkeypatch.setattr(gui_dialogs,"TRUPER_ENABLED",False);monkeypatch.setattr(gui_pages,"TRUPER_ENABLED",False)
+    monkeypatch.setattr(gui_pages.UnknownBarcodeDialog,"exec",lambda self:self.EXTERNAL)
+    selected=[]
+    class AutomaticQuickProductDialog(QuickProductDialog):
+        def exec(self):
+            selected.append(self.mode.currentData());self.key.setText(key);self.description.setText("Coca 1.l" if kind=="UNIDAD" else "Azúcar a granel");self.kind.setCurrentText(kind);self.price.setText("29" if kind=="UNIDAD" else "28");self.stock.setText(stock);self.minimum.setText("5" if kind=="UNIDAD" else "0.500")
+            piece=self.purchase_presentation.findText("Pieza")
+            if piece>=0:self.purchase_presentation.setCurrentIndex(piece);self.purchase_content.setText("1")
+            self._save();return self.result()
+    class AcceptedBulkDialog:
+        def __init__(self,*_):self.cantidad_mg=500_000
+        def exec(self):return QDialog.DialogCode.Accepted
+    monkeypatch.setattr(gui_pages,"QuickProductDialog",AutomaticQuickProductDialog);monkeypatch.setattr(gui_pages,"BulkSaleDialog",AcceptedBulkDialog)
+    page=PosPage(db);page._process_term(barcode)
+    saved=ProductService(db,get_edition_config(Edition.GENERAL)).buscar_exacto("codigo_barras",barcode)
+    assert selected==["EXTERNAL"] and saved is not None and saved.clave==key and saved.codigo_truper is None and saved.tipo_venta==kind
+    assert ProductQueryService(db).buscar_inteligente(key).products[0].id==saved.id and page.cart.items[0].producto_id==saved.id
+    products=ProductsPage(db);products.reload();assert any(products.table.item(row,0).text()==key for row in range(products.table.rowCount()))
+    before=saved.existencia if kind=="UNIDAD" else saved.existencia_granel_mg
+    sale_line={"producto_id":saved.id,"cantidad":1} if kind=="UNIDAD" else {"producto_id":saved.id,"cantidad_mg":500_000}
+    SalesService(db).crear_venta([sale_line],"TARJETA")
+    after=ProductService(db).get(saved.id);assert (after.existencia if kind=="UNIDAD" else after.existencia_granel_mg)<before
 
 
 def test_general_no_muestra_branding_ferreteria(app,db,monkeypatch):

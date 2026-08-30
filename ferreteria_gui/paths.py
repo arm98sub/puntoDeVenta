@@ -20,6 +20,8 @@ class AppPaths:
     def backups(self): return self.root / "backups"
     @property
     def logs(self): return self.root / "logs"
+    @property
+    def printing_config(self): return self.root / "state" / "printing.json"
 
 
 def resolve_app_root(*, frozen=None, executable=None, module_file=None, environ=None):

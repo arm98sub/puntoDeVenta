@@ -7,7 +7,8 @@ from PySide6.QtWidgets import (QAbstractItemView,QAbstractSpinBox,QApplication,Q
 
 from ferreteria_core.services import BulkQuantityRequired,VariablePriceRequired, Cart,CategoryService,DailySummaryService, InsufficientStockError, InventoryService, ProductEditSession, ProductQueryService, ProductService, SalesService, TicketService
 from ferreteria_core.quantity import formato_granel
-from .config import PAGE_SIZE, TICKET_ROOT, TRUPER_ENABLED
+from .config import PAGE_SIZE, PRINTING_CONFIG_PATH, TICKET_ROOT, TRUPER_ENABLED
+from .thermal_printing import ThermalPrinterService
 from .dialogs import (BulkSaleDialog,BulkStockDialog,BulkTypeDialog,IdentityEditDialog,InventoryMovementsDialog,ProductModifyDialog,DescriptionEditDialog, ExternalProductDialog, GenericImportDialog, LinkProductDialog, PaymentDialog, PriceEditDialog,
                       ProductSearchDialog,QuickProductDialog,QuickStockDialog, SaleCompletedDialog, SaleDetailDialog, UnknownBarcodeDialog,VariablePriceDialog)
 from .presentation import cantidad_producto,limpiar_estado_venta, moneda, nombre_producto, parsear_importe,precio_producto
@@ -21,7 +22,7 @@ logger=logging.getLogger("ferreteria_gui")
 
 class PosPage(QWidget):
     def __init__(self, database, parent=None):
-        super().__init__(parent); self.database=database; self.cart=Cart(database); self.sales=SalesService(database);self.scanner_buffer=ScannerBuffer()
+        super().__init__(parent); self.database=database; self.cart=Cart(database); self.sales=SalesService(database);self.scanner_buffer=ScannerBuffer();self.thermal=None if TRUPER_ENABLED else ThermalPrinterService(database,PRINTING_CONFIG_PATH)
         root=QVBoxLayout(self); title=QLabel("PUNTO DE VENTA"); title.setStyleSheet("font-size:24px;font-weight:bold")
         scan=QHBoxLayout(); scan.addWidget(QLabel("Buscar / escanear:")); self.barcode=QLineEdit(); self.barcode.setPlaceholderText("Barcode, código Truper, clave o descripción · Enter" if TRUPER_ENABLED else "Barcode, clave o descripción · Enter"); self.barcode.setStyleSheet("font-size:20px;padding:12px"); scan.addWidget(self.barcode,1)
         root.addWidget(title); root.addLayout(scan)
@@ -63,7 +64,9 @@ class PosPage(QWidget):
                 dialog=UnknownBarcodeDialog(term,self);action=dialog.exec()
                 if action in (UnknownBarcodeDialog.SEARCH,UnknownBarcodeDialog.EXTERNAL):
                     target=QuickProductDialog(self.database,term,self)
-                    if action==UnknownBarcodeDialog.EXTERNAL:target.mode.setCurrentIndex(1)
+                    if action==UnknownBarcodeDialog.EXTERNAL:
+                        external_index=target.mode.findData("EXTERNAL")
+                        if external_index>=0:target.mode.setCurrentIndex(external_index)
                     if target.exec()==QDialog.DialogCode.Accepted:self._add_product(target.product)
         except Exception as exc: show_error(self,"No se pudo agregar el producto",exc)
 
@@ -209,11 +212,24 @@ class PosPage(QWidget):
             if result != QDialog.DialogCode.Accepted: self.focus_scanner(); return
             payment=dialog.payment; received=Decimal(payment.recibido_centavos)/Decimal(100) if payment.recibido_centavos is not None else None
             sale=self.sales.crear_venta(self.cart.como_items_venta(),dialog.method.currentText(),received,Decimal(discount)/Decimal(100))
+            post_sale_errors=[]
+            if self.thermal:
+                try:
+                    print_settings=self.thermal.settings.load()
+                except Exception as exc:
+                    post_sale_errors.append(exc);logger.exception("Venta %s completada, pero falló impresora/cajón",sale.folio)
+                else:
+                    if print_settings.auto_open_drawer and sale.metodo_pago=="EFECTIVO":
+                        try:self.thermal.open_drawer()
+                        except Exception as exc:post_sale_errors.append(exc);logger.exception("Venta %s completada, pero falló el cajón",sale.folio)
+                    if print_settings.auto_print:
+                        try:self.thermal.print_sale(sale)
+                        except Exception as exc:post_sale_errors.append(exc);logger.exception("Venta %s completada, pero falló la impresión",sale.folio)
             ticket_path=ticket_error=None
             try:ticket_path=TicketService(self.database,TICKET_ROOT).generar_para_venta(sale)
             except Exception as exc:
                 ticket_error=exc; logger.exception("Venta %s completada, pero falló su ticket",sale.folio)
-            SaleCompletedDialog(sale,ticket_path,ticket_error,self).exec()
+            SaleCompletedDialog(sale,ticket_path,ticket_error,self,self.thermal,post_sale_errors).exec()
             limpiar_estado_venta(self.cart,self.discount,self.barcode); self.refresh()
         except Exception as exc:
             title="Existencia insuficiente" if str(exc).startswith("Stock insuficiente") else "No se pudo completar la venta"
@@ -597,7 +613,7 @@ def _adjust_product_stock(database,product,parent):
 
 class HistoryPage(QWidget):
     def __init__(self,database,parent=None,auto_refresh=True):
-        super().__init__(parent); self.sales=SalesService(database);self.summaries=DailySummaryService(database); self.tickets=TicketService(database,TICKET_ROOT); root=QVBoxLayout(self); heading=QLabel("HISTORIAL DE VENTAS"); heading.setStyleSheet("font-size:24px;font-weight:bold"); root.addWidget(heading)
+        super().__init__(parent); self.sales=SalesService(database);self.summaries=DailySummaryService(database); self.tickets=TicketService(database,TICKET_ROOT);self.thermal=None if TRUPER_ENABLED else ThermalPrinterService(database,PRINTING_CONFIG_PATH); root=QVBoxLayout(self); heading=QLabel("HISTORIAL DE VENTAS"); heading.setStyleSheet("font-size:24px;font-weight:bold"); root.addWidget(heading)
         summary_bar=QHBoxLayout();summary_bar.addWidget(QLabel("Resumen del día:"));self.summary_date=QDateEdit(QDate.currentDate());self.summary_date.setCalendarPopup(True);self.summary_date.setDisplayFormat("dd/MM/yyyy");summary_bar.addWidget(self.summary_date);refresh=QPushButton("Actualizar");summary_bar.addWidget(refresh);summary_bar.addStretch();root.addLayout(summary_bar)
         self.summary_title=QLabel();self.summary_title.setStyleSheet("font-size:16px;font-weight:bold");self.net=QLabel();self.net.setStyleSheet("font-size:26px;font-weight:bold;color:#1877c9");self.summary_stats=QLabel();self.summary_stats.setWordWrap(True);root.addWidget(self.summary_title);root.addWidget(self.net);root.addWidget(self.summary_stats)
         root.addWidget(QLabel("Productos vendidos"));self.sold_table=QTableWidget(0,5);self.sold_table.setHorizontalHeaderLabels(["Producto","Clave","Cantidad","Unidad","Importe"]);self.sold_table.setEditTriggers(QTableWidget.NoEditTriggers);self.sold_table.horizontalHeader().setStretchLastSection(True);self.sold_table.setMaximumHeight(220);root.addWidget(self.sold_table)
@@ -632,4 +648,4 @@ class HistoryPage(QWidget):
     def open_sale(self,*_):
         row=self.table.currentRow()
         if row<0:return
-        sale=self.sales.obtener_por_id(self.table.item(row,0).data(Qt.UserRole)); SaleDetailDialog(sale,self.sales,self.tickets,self).exec(); self.refresh()
+        sale=self.sales.obtener_por_id(self.table.item(row,0).data(Qt.UserRole)); SaleDetailDialog(sale,self.sales,self.tickets,self,thermal_service=self.thermal).exec(); self.refresh()

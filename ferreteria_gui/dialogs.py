@@ -502,8 +502,8 @@ class UnknownBarcodeDialog(QDialog):
 
 
 class SaleDetailDialog(QDialog):
-    def __init__(self, sale, sales_service, ticket_service, parent=None):
-        super().__init__(parent); self.sale=sale; self.service=sales_service; self.tickets=ticket_service; self.setWindowTitle(f"Venta {sale.folio}"); self.resize(750,450)
+    def __init__(self, sale, sales_service, ticket_service, parent=None,thermal_service=None):
+        super().__init__(parent); self.sale=sale; self.service=sales_service; self.tickets=ticket_service;self.thermal=thermal_service; self.setWindowTitle(f"Venta {sale.folio}"); self.resize(750,450)
         root=QVBoxLayout(self); root.addWidget(QLabel(f"{sale.folio}  |  {sale.fecha_hora}  |  {sale.estado}\nMétodo: {sale.metodo_pago}   Total: {moneda(sale.total_centavos)}"))
         table=QTableWidget(len(sale.detalles),4); table.setHorizontalHeaderLabels(["Producto","Clave","Cantidad","Subtotal"]); table.setEditTriggers(QTableWidget.NoEditTriggers)
         for row,d in enumerate(sale.detalles):
@@ -511,7 +511,10 @@ class SaleDetailDialog(QDialog):
             values=[d.descripcion_snapshot or d.clave_snapshot or d.codigo_truper_snapshot or str(d.producto_id),d.clave_snapshot or "",quantity,moneda(d.subtotal_centavos)]
             for col,value in enumerate(values): table.setItem(row,col,QTableWidgetItem(str(value)))
         table.horizontalHeader().setStretchLastSection(True); root.addWidget(table)
-        buttons=QHBoxLayout(); open_ticket=QPushButton("ABRIR TICKET"); regenerate=QPushButton("REGENERAR TICKET"); open_ticket.clicked.connect(self._ticket); regenerate.clicked.connect(lambda:self._ticket(True)); buttons.addWidget(open_ticket); buttons.addWidget(regenerate); buttons.addStretch()
+        buttons=QHBoxLayout(); open_ticket=QPushButton("ABRIR PDF" if self.thermal else "ABRIR TICKET"); regenerate=QPushButton("REGENERAR PDF" if self.thermal else "REGENERAR TICKET"); open_ticket.clicked.connect(self._ticket); regenerate.clicked.connect(lambda:self._ticket(True)); buttons.addWidget(open_ticket); buttons.addWidget(regenerate)
+        if self.thermal:
+            reprint=QPushButton("REIMPRIMIR TICKET");reprint.clicked.connect(self._reprint);buttons.addWidget(reprint)
+        buttons.addStretch()
         if sale.estado=="COMPLETADA":
             cancel=QPushButton("CANCELAR VENTA"); cancel.setObjectName("danger"); cancel.clicked.connect(self._cancel); buttons.addWidget(cancel)
         close=QPushButton("Cerrar"); close.clicked.connect(self.accept); buttons.addWidget(close); root.addLayout(buttons)
@@ -529,19 +532,31 @@ class SaleDetailDialog(QDialog):
             path=self.tickets.regenerar(self.sale.id) if regenerate else self.tickets.obtener_o_generar(self.sale.id)
             QDesktopServices.openUrl(QUrl.fromLocalFile(str(path.resolve())))
         except Exception as exc:show_error(self,"No se pudo abrir el ticket",exc)
+    def _reprint(self):
+        try:self.thermal.print_sale(self.sale);QMessageBox.information(self,"Impresión enviada",f"El ticket {self.sale.folio} fue enviado a la impresora.")
+        except Exception as exc:show_error(self,"No se pudo reimprimir",exc)
 
 
 class SaleCompletedDialog(QDialog):
-    def __init__(self,sale,ticket_path=None,ticket_error=None,parent=None):
+    def __init__(self,sale,ticket_path=None,ticket_error=None,parent=None,thermal_service=None,post_sale_errors=None):
         super().__init__(parent); self.setWindowTitle("VENTA REALIZADA"); layout=QVBoxLayout(self)
         text=f"VENTA REALIZADA\n\nFolio: {sale.folio}\nTotal: {moneda(sale.total_centavos)}"
         if sale.efectivo_recibido_centavos is not None:text+=f"\nRecibido: {moneda(sale.efectivo_recibido_centavos)}\nCambio: {moneda(sale.cambio_centavos)}"
         if ticket_error:text+="\n\nVenta realizada correctamente, pero no fue posible generar el ticket."
+        if post_sale_errors:text+="\n\nLa venta se registró correctamente, pero no fue posible imprimir el ticket o abrir el cajón."
         label=QLabel(text); label.setAlignment(Qt.AlignCenter); label.setStyleSheet("font-size:18px;font-weight:bold"); layout.addWidget(label)
         buttons=QHBoxLayout()
-        if ticket_path:
+        self.thermal=thermal_service;self.sale=sale
+        if self.thermal:
+            self.print_button=QPushButton("IMPRIMIR TICKET");self.print_button.clicked.connect(self._print_thermal);buttons.addWidget(self.print_button)
+            if ticket_path:
+                pdf=QPushButton("ABRIR PDF");pdf.clicked.connect(lambda:QDesktopServices.openUrl(QUrl.fromLocalFile(str(ticket_path.resolve()))));buttons.addWidget(pdf)
+        elif ticket_path:
             self.print_button=QPushButton("IMPRIMIR TICKET"); self.print_button.clicked.connect(lambda:QDesktopServices.openUrl(QUrl.fromLocalFile(str(ticket_path.resolve())))); buttons.addWidget(self.print_button)
         self.fresh=QPushButton("NUEVA VENTA"); self.fresh.setObjectName("primary");self.fresh.setDefault(True);self.fresh.setAutoDefault(True);self.fresh.clicked.connect(self.accept); buttons.addWidget(self.fresh); layout.addLayout(buttons);self.fresh.setFocus()
+    def _print_thermal(self):
+        try:self.thermal.print_sale(self.sale);QMessageBox.information(self,"Impresión enviada","El ticket fue enviado a la impresora.")
+        except Exception as exc:show_error(self,"No se pudo imprimir",exc)
 
 
 def _text_prompt(parent,title,label):
