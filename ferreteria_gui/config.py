@@ -10,6 +10,13 @@ APP_NAME = EDITION.app_name
 APP_EDITION = EDITION.edition
 TRUPER_ENABLED = EDITION.truper_enabled
 PURCHASES_ENABLED = EDITION.purchases_enabled
+
+
+def visible_business_name(value):
+    name=(value or "").strip()
+    if not TRUPER_ENABLED and name.casefold() in {"ferretería","ferreteria"}:
+        return APP_NAME
+    return name or APP_NAME
 PAGE_SIZE = 50
 TICKET_ROOT=PATHS.tickets
 BRANDING_DIR=PATHS.branding

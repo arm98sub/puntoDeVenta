@@ -7,15 +7,19 @@ os.environ.setdefault("QT_QPA_PLATFORM","offscreen")
 import pytest
 from PySide6.QtCore import Qt
 from PySide6.QtTest import QTest
-from PySide6.QtWidgets import QAbstractItemView, QApplication, QDialog
+from PySide6.QtWidgets import QAbstractItemView, QApplication, QDialog, QLabel
 
 from ferreteria_core import Database
+from edition import Edition,get_edition_config
 from ferreteria_core.services import ProductService
 from ferreteria_gui.pages import InventoryPage, PosPage, ProductsPage
-from ferreteria_gui.dialogs import PaymentDialog
+from ferreteria_gui.dialogs import PaymentDialog,ProductModifyDialog,QuickProductDialog
 from ferreteria_gui.dialogs import QuickStockDialog
 from ferreteria_gui.app import KeyboardActivationFilter
+from ferreteria_gui.main_window import MainWindow
 from ferreteria_gui.widgets import STYLE
+import ferreteria_gui.config as gui_config
+import ferreteria_gui.dialogs as gui_dialogs
 
 
 @pytest.fixture(scope="session")
@@ -29,6 +33,30 @@ def db(tmp_path):
 
 def product(db,barcode="7501206683729"):
     return ProductService(db).crear_producto_externo(barcode,"Silicón",Decimal("51"),10,clave="SIL-85T")
+
+
+def _visible_labels(widget):
+    widget.show();QApplication.processEvents();return [label.text() for label in widget.findChildren(QLabel) if not label.isHidden()]
+
+
+def test_general_oculta_truper_en_alta_y_modificacion(app,db,monkeypatch):
+    monkeypatch.setattr(gui_dialogs,"TRUPER_ENABLED",False)
+    quick=QuickProductDialog(db);quick_labels=_visible_labels(quick)
+    assert not any("Truper" in text for text in quick_labels) and "Código interno:" in quick_labels
+    item=product(db,"7501206683730");service=ProductService(db,get_edition_config(Edition.GENERAL));modify=ProductModifyDialog(item,service);modify_labels=_visible_labels(modify)
+    assert not any("Truper" in text for text in modify_labels) and "Código interno:" in modify_labels and "Barcode:" in modify_labels
+
+
+def test_general_no_muestra_branding_ferreteria(app,db,monkeypatch):
+    monkeypatch.setattr(gui_config,"TRUPER_ENABLED",False);monkeypatch.setattr(gui_config,"APP_NAME","PuntoDeVenta General")
+    window=MainWindow(db);assert window.business_name.text()=="PuntoDeVenta General" and "FERRETERÍA" not in window.business_name.text().upper()
+
+
+def test_ferreteria_conserva_controles_truper(app,db,monkeypatch):
+    monkeypatch.setattr(gui_dialogs,"TRUPER_ENABLED",True)
+    quick=QuickProductDialog(db);labels=_visible_labels(quick)
+    assert "Código Truper:" in labels and quick.find.text()=="BUSCAR CÓDIGO TRUPER"
+    item=product(db,"7501206683731");modify=ProductModifyDialog(item,ProductService(db));assert any("Precio catálogo Truper" in text for text in _visible_labels(modify))
 
 
 def test_payment_dialog_accepted(app):

@@ -160,7 +160,8 @@ class ExternalProductDialog(QDialog):
 class ProductModifyDialog(QDialog):
     def __init__(self,product,service,parent=None):
         super().__init__(parent);self.product=product;self.service=service;self.saved_product=None;self.setWindowTitle("Modificar producto");self.setMinimumWidth(520);form=QFormLayout(self)
-        for label,value in (("Código",product.codigo_truper or "—"),("Barcode",product.codigo_barras or "—"),("Clave",product.clave or "—")):form.addRow(label+":",QLabel(value))
+        identity=(("Código",product.codigo_truper or "—"),("Barcode",product.codigo_barras or "—"),("Clave",product.clave or "—")) if TRUPER_ENABLED else (("Barcode",product.codigo_barras or "—"),("Código interno",product.clave or "—"))
+        for label,value in identity:form.addRow(label+":",QLabel(value))
         self.description=QLineEdit(product.descripcion or "");self.kind=QComboBox();self.kind.addItems(["UNIDAD","GRANEL"]);self.kind.setCurrentText(product.tipo_venta);self.bulk_unit=QComboBox();self.bulk_unit.addItem("Peso (kg)","PESO");self.bulk_unit.addItem("Volumen (L)","VOLUMEN");self.bulk_unit.setCurrentIndex(max(0,self.bulk_unit.findData(product.unidad_granel or "PESO")));self.catalog=QLineEdit(_decimal_text(product.precio_catalogo_publico));self.cost=QLineEdit(_decimal_text(product.precio_proveedor));self.margin=QLineEdit(product.porcentaje_ganancia or "");self.sale=QLineEdit(_decimal_text(product.precio_venta));self.variable=QCheckBox("Precio variable en cada venta");self.variable.setChecked(product.precio_variable);self.control=QCheckBox();_style_inventory_control(self.control,product.controla_inventario);self.active=QCheckBox("Producto activo");self.active.setChecked(product.activo);self.category=QComboBox();self.supplier=QComboBox();self.minimum=QLineEdit(str(product.stock_minimo) if product.tipo_venta=="UNIDAD" else formato_granel(product.stock_minimo_granel_mg,product.unidad_granel or "PESO").split()[0]);self.purchase_presentation=QComboBox();self.purchase_content=QLineEdit("1")
         for label,widget in (("Descripción",self.description),("Se vende",self.kind),("Unidad de granel",self.bulk_unit),("Precio catálogo Truper",self.catalog),("Precio proveedor",self.cost),("Ganancia %",self.margin),("Precio venta / sugerido",self.sale),("",self.variable),("",self.control),("",self.active)):form.addRow(label,widget)
         if not TRUPER_ENABLED:
@@ -230,7 +231,7 @@ class PriceEditDialog(QDialog):
         super().__init__(parent); self.product=product; self.service=product_service; self.saved_product=None
         self.setWindowTitle("Editar precio de venta"); form=QFormLayout(self)
         form.addRow("Producto:",QLabel(nombre_producto(product))); form.addRow("Clave:",QLabel(product.clave or "—"))
-        form.addRow("Precio catálogo:",QLabel(moneda(product.precio_catalogo_publico)))
+        if TRUPER_ENABLED:form.addRow("Precio catálogo:",QLabel(moneda(product.precio_catalogo_publico)))
         form.addRow("Precio de venta actual:",QLabel(moneda(product.precio_venta)))
         self.new_price=QLineEdit("" if product.precio_venta is None else f"{Decimal(product.precio_venta)/Decimal(100):.2f}"); self.new_price.selectAll(); form.addRow("Nuevo precio: $",self.new_price)
         buttons=QDialogButtonBox(QDialogButtonBox.Save|QDialogButtonBox.Cancel); buttons.button(QDialogButtonBox.Save).setText("GUARDAR"); buttons.accepted.connect(self._save); buttons.rejected.connect(self.reject); form.addRow(buttons)
@@ -244,7 +245,9 @@ class PriceEditDialog(QDialog):
 class DescriptionEditDialog(QDialog):
     def __init__(self,product,product_service,parent=None):
         super().__init__(parent);self.product=product;self.service=product_service;self.saved_product=None;self.setWindowTitle("Editar descripción")
-        form=QFormLayout(self);form.addRow("Producto:",QLabel(nombre_producto(product)));form.addRow("Código Truper:",QLabel(product.codigo_truper or "—"));form.addRow("Clave:",QLabel(product.clave or "—"));form.addRow("Descripción actual:",QLabel(product.descripcion or "—"));self.description=QLineEdit(product.descripcion or "");form.addRow("Nueva descripción:",self.description)
+        form=QFormLayout(self);form.addRow("Producto:",QLabel(nombre_producto(product)))
+        if TRUPER_ENABLED:form.addRow("Código Truper:",QLabel(product.codigo_truper or "—"))
+        form.addRow("Clave:" if TRUPER_ENABLED else "Código interno:",QLabel(product.clave or "—"));form.addRow("Descripción actual:",QLabel(product.descripcion or "—"));self.description=QLineEdit(product.descripcion or "");form.addRow("Nueva descripción:",self.description)
         buttons=QDialogButtonBox(QDialogButtonBox.Save|QDialogButtonBox.Cancel);buttons.accepted.connect(self._save);buttons.rejected.connect(self.reject);form.addRow(buttons);self.description.setFocus();self.description.selectAll()
     def _save(self):
         try:self.saved_product=self.service.actualizar_descripcion_producto(self.product.id,self.description.text());self.accept()
@@ -295,7 +298,7 @@ class LinkProductDialog(QDialog):
     def __init__(self, database, barcode="", parent=None):
         super().__init__(parent); self.database = database; self.service = ProductService(database); self.selected_id = None; self.product = None
         self.setWindowTitle("Vincular código de barras"); self.resize(850, 520)
-        root = QVBoxLayout(self); form = QHBoxLayout(); self.barcode = QLineEdit(barcode); self.kind = QComboBox(); self.kind.addItems(["Código Truper","Clave","Descripción"]); self.query = QLineEdit(); search = QPushButton("Buscar")
+        root = QVBoxLayout(self); form = QHBoxLayout(); self.barcode = QLineEdit(barcode); self.kind = QComboBox(); self.kind.addItems(["Código Truper","Clave","Descripción"] if TRUPER_ENABLED else ["Código interno","Descripción"]); self.query = QLineEdit(); search = QPushButton("Buscar")
         form.addWidget(QLabel("Barcode:")); form.addWidget(self.barcode); form.addWidget(self.kind); form.addWidget(self.query,1); form.addWidget(search); root.addLayout(form)
         self.table = QTableWidget(0,6); self.table.setHorizontalHeaderLabels(["ID","Código","Clave","Producto","Marca","Existencia"]); self.table.setSelectionBehavior(QTableWidget.SelectRows); self.table.setEditTriggers(QTableWidget.NoEditTriggers); self.table.horizontalHeader().setStretchLastSection(True); root.addWidget(self.table)
         lower = QHBoxLayout(); self.stock = QSpinBox(); self.stock.setMaximum(1_000_000); link = QPushButton("Vincular y guardar existencia"); cancel = QPushButton("Cancelar")
@@ -307,17 +310,17 @@ class LinkProductDialog(QDialog):
             text = self.query.text().strip(); kind = self.kind.currentText()
             if kind == "Descripción": products = self.service.buscar(descripcion=text, limit=100)
             else:
-                field = "codigo_truper" if kind == "Código Truper" else "clave"; product = self.service.buscar_exacto(field,text); products = [product] if product else []
+                field = "codigo_truper" if TRUPER_ENABLED and kind == "Código Truper" else "clave"; product = self.service.buscar_exacto(field,text); products = [product] if product else []
             self.table.setRowCount(0)
             for product in products:
                 row = self.table.rowCount(); self.table.insertRow(row)
-                values = [product.id,product.codigo_truper or "",product.clave or "",nombre_producto(product),product.marca or "",product.existencia]
+                values = [product.id,product.codigo_truper or "",product.clave or "",nombre_producto(product),product.marca or "",product.existencia] if TRUPER_ENABLED else [product.id,product.clave or "",product.codigo_barras or "",nombre_producto(product),product.marca or "",product.existencia]
                 for col,value in enumerate(values): self.table.setItem(row,col,QTableWidgetItem(str(value)))
         except Exception as exc: show_error(self,"Error al buscar",exc)
 
     def _link(self):
         row = self.table.currentRow()
-        if row < 0: QMessageBox.warning(self,"Seleccione producto","Seleccione el producto Truper que desea vincular."); return
+        if row < 0: QMessageBox.warning(self,"Seleccione producto","Seleccione el producto que desea vincular."); return
         try:
             product_id = int(self.table.item(row,0).text())
             self.product = InitialInventoryService(self.database).vincular_y_capturar(product_id,self.barcode.text(),self.stock.value())
@@ -339,7 +342,9 @@ class QuickProductDialog(QDialog):
         self.key=QLineEdit();self.description=QLineEdit();self.price=QLineEdit();self.variable=QCheckBox("Precio variable en cada venta");self.control=QCheckBox();_style_inventory_control(self.control,True)
         self.category=QComboBox();self.supplier=QComboBox();self.cost=QLineEdit();self.minimum=QLineEdit("0");self.purchase_presentation=QComboBox();self.purchase_content=QLineEdit("1")
         self.kind=QComboBox();self.kind.addItems(["UNIDAD","GRANEL"]);self.bulk_unit=QComboBox();self.bulk_unit.addItem("Peso (kg)","PESO");self.bulk_unit.addItem("Volumen (L)","VOLUMEN");self.stock=QLineEdit("0")
-        form.addRow("Tipo de alta:",self.mode);form.addRow("Barcode:",self.barcode);form.addRow("Código Truper:",code_row);form.addRow(self.status)
+        if TRUPER_ENABLED:form.addRow("Tipo de alta:",self.mode)
+        form.addRow("Barcode:",self.barcode)
+        if TRUPER_ENABLED:form.addRow("Código Truper:",code_row);form.addRow(self.status)
         form.addRow("Clave (opcional):",self.key);form.addRow("Descripción:",self.description);form.addRow("Se vende:",self.kind);form.addRow("Unidad de granel:",self.bulk_unit)
         form.addRow("Precio de venta / sugerido: $",self.price);form.addRow(self.variable);form.addRow(self.control);form.addRow("Existencia actual:",self.stock)
         if not TRUPER_ENABLED:
@@ -347,8 +352,6 @@ class QuickProductDialog(QDialog):
         self.buttons=QDialogButtonBox(QDialogButtonBox.Save|QDialogButtonBox.Cancel);self.buttons.button(QDialogButtonBox.Save).setText("GUARDAR Y VINCULAR");self.buttons.accepted.connect(self._save);self.buttons.rejected.connect(self.reject);form.addRow(self.buttons)
         self.mode.currentIndexChanged.connect(self._refresh_mode);self.find.clicked.connect(self._lookup);self.code.returnPressed.connect(self._lookup);self.control.toggled.connect(self.stock.setEnabled);self.kind.currentTextChanged.connect(self._stock_hint);self.bulk_unit.currentIndexChanged.connect(self._stock_hint);self._refresh_mode();self.barcode.setFocus()
         if not TRUPER_ENABLED:
-            for widget in (self.mode,self.code,self.status):form.setRowVisible(widget,False)
-            form.setRowVisible(self.key,True)
             form.labelForField(self.key).setText("Código interno:")
             self.category.currentIndexChanged.connect(self._category_selected);self.supplier.currentIndexChanged.connect(self._supplier_selected)
     def _load_catalogs(self,category_id=None,supplier_id=None):
@@ -435,12 +438,13 @@ class SupplierDialog(QDialog):
 class ProductSearchDialog(QDialog):
     def __init__(self,database,term,parent=None):
         super().__init__(parent);self.database=database;self.selected_product=None;self.selected_products=[];self._committed=False;self.setWindowTitle("Seleccionar productos");self.resize(1050,560);self.setMinimumSize(760,400)
-        root=QVBoxLayout(self);root.addWidget(QLabel(f"Resultados para: {term}\nCtrl+clic selecciona filas individuales · Shift+clic selecciona un rango"));self.table=QTableWidget(0,5);self.table.setHorizontalHeaderLabels(["Código","Clave","Descripción","Precio","Existencia"]);self.table.setSelectionBehavior(QTableWidget.SelectRows);self.table.setSelectionMode(QTableWidget.ExtendedSelection);self.table.setEditTriggers(QTableWidget.NoEditTriggers);self.table.horizontalHeader().setStretchLastSection(False);root.addWidget(self.table)
+        root=QVBoxLayout(self);root.addWidget(QLabel(f"Resultados para: {term}\nCtrl+clic selecciona filas individuales · Shift+clic selecciona un rango"));self.table=QTableWidget(0,5);self.table.setHorizontalHeaderLabels(["Código","Clave","Descripción","Precio","Existencia"] if TRUPER_ENABLED else ["Código interno","Barcode","Descripción","Precio","Existencia"]);self.table.setSelectionBehavior(QTableWidget.SelectRows);self.table.setSelectionMode(QTableWidget.ExtendedSelection);self.table.setEditTriggers(QTableWidget.NoEditTriggers);self.table.horizontalHeader().setStretchLastSection(False);root.addWidget(self.table)
         result=ProductQueryService(database).buscar_inteligente(term,page_size=100)
         self.products=result.products
         for product in self.products:
             row=self.table.rowCount();self.table.insertRow(row);stock=cantidad_producto(product) if product.controla_inventario else "—"
-            for col,value in enumerate((product.codigo_truper or "",product.clave or "",nombre_producto(product),precio_producto(product),stock)):
+            identity=(product.codigo_truper or "",product.clave or "") if TRUPER_ENABLED else (product.clave or "",product.codigo_barras or "")
+            for col,value in enumerate((*identity,nombre_producto(product),precio_producto(product),stock)):
                 item=QTableWidgetItem(str(value));item.setToolTip(str(value));self.table.setItem(row,col,item)
             self.table.item(row,0).setData(Qt.UserRole,product.id)
         for column,width in enumerate((100,140,500,110,110)):self.table.setColumnWidth(column,width)

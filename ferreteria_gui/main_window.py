@@ -4,7 +4,7 @@ from PySide6.QtGui import QKeySequence, QPixmap, QShortcut
 from PySide6.QtWidgets import QHBoxLayout, QLabel, QListWidget, QMainWindow, QMessageBox, QStackedWidget, QVBoxLayout, QWidget
 
 from ferreteria_core.services import BusinessConfigService
-from .config import APP_NAME,PURCHASES_ENABLED
+from .config import APP_NAME,PURCHASES_ENABLED,visible_business_name
 from .pages import HistoryPage, InventoryPage, PosPage, ProductsPage
 from .settings_page import SettingsPage
 from .purchases_page import PurchasesPage
@@ -57,7 +57,7 @@ class MainWindow(QMainWindow):
         if hasattr(page,"reload"):page.reload()
         elif hasattr(page,"refresh"):page.refresh()
     def _apply_settings(self,settings):
-        self.business_name.setText(settings.nombre_negocio)
+        self.business_name.setText(visible_business_name(settings.nombre_negocio))
         if settings.logo_path and Path(settings.logo_path).exists():self.logo.setPixmap(QPixmap(settings.logo_path).scaled(self.logo.size(),Qt.KeepAspectRatio,Qt.SmoothTransformation))
         else:self.logo.clear()
     def _refresh_all(self):

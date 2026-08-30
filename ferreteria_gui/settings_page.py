@@ -7,7 +7,7 @@ from PySide6.QtWidgets import QFileDialog,QFormLayout,QHBoxLayout,QLabel,QLineEd
 from ferreteria_core.services import BackupService,BusinessConfigService,CategoryService,PurchasePresentationService,SupplierService,validar_respaldo
 from edition import EDITION,Edition
 from ferreteria_core.version import __version__
-from .config import BACKUP_ROOT,BRANDING_DIR
+from .config import BACKUP_ROOT,BRANDING_DIR,visible_business_name
 from .widgets import show_error
 
 
@@ -23,7 +23,7 @@ class SettingsPage(QWidget):
             catalogs=QHBoxLayout();categories=QPushButton("Administrar categorías");suppliers=QPushButton("Administrar proveedores");catalogs.addWidget(categories);catalogs.addWidget(suppliers);catalogs.addStretch();root.addLayout(catalogs);categories.clicked.connect(lambda:CatalogManagerDialog(database,"category",self).exec());suppliers.clicked.connect(lambda:CatalogManagerDialog(database,"supplier",self).exec())
         backup_title=QLabel("RESPALDOS");backup_title.setObjectName("pageTitle");root.addWidget(backup_title);backup_row=QHBoxLayout();manual=QPushButton("Crear respaldo ahora");restore=QPushButton("Restaurar respaldo");open_folder=QPushButton("Abrir carpeta de respaldos");backup_row.addWidget(manual);backup_row.addWidget(restore);backup_row.addWidget(open_folder);backup_row.addStretch();root.addLayout(backup_row);root.addWidget(QLabel(f"Versión {__version__}"));root.addStretch();choose.clicked.connect(self._choose);save.clicked.connect(self.save);manual.clicked.connect(self._manual_backup);restore.clicked.connect(self._restore);open_folder.clicked.connect(self._open_backups);self.load()
     def load(self):
-        settings=self.service.obtener();self.name.setText(settings.nombre_negocio);self.address.setText(settings.direccion or "");self.phone.setText(settings.telefono or "");self.rfc.setText(settings.rfc or "");self.message.setText(settings.mensaje_ticket or "");self._show_logo(settings.logo_path)
+        settings=self.service.obtener();self.name.setText(visible_business_name(settings.nombre_negocio));self.address.setText(settings.direccion or "");self.phone.setText(settings.telefono or "");self.rfc.setText(settings.rfc or "");self.message.setText(settings.mensaje_ticket or "");self._show_logo(settings.logo_path)
     def _choose(self):
         path,_=QFileDialog.getOpenFileName(self,"Seleccionar logo","","Imágenes (*.png *.jpg *.jpeg)")
         if path:self.logo_source=path;self._show_logo(path)
